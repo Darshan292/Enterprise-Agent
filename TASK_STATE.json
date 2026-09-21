@@ -1,0 +1,141 @@
+{
+  "schema_version": "0.1.0",
+  "project": "agent-reliability-and-runtime-assurance",
+  "generated_at": "2026-09-21",
+  "current_gate": "GATE_0_ARCHITECTURE",
+  "gate_0_status": "ARTIFACTS_DRAFTED_PENDING_HUMAN_REVIEW",
+  "implementation_authorized": false,
+  "production_claim": "none. prototype and reference implementation only. all results are obtained against a synthetic environment authored by this project and support no claim about real systems.",
+
+  "artifacts": [
+    {"path": "docs/PROJECT_CHARTER.md", "state": "DRAFTED", "answers": ["A", "B", "C", "D", "E", "F"]},
+    {"path": "docs/ARCHITECTURE_SURFACE.md", "state": "DRAFTED", "answers": ["E", "G", "H", "I", "J", "K", "L", "M", "N", "S", "T"]},
+    {"path": "docs/FAILURE_TAXONOMY.md", "state": "DRAFTED", "answers": ["adversarial_review"]},
+    {"path": "docs/THREAT_MODEL.md", "state": "DRAFTED", "answers": ["G", "Q", "R"]},
+    {"path": "docs/EVALUATION_STRATEGY.md", "state": "DRAFTED", "answers": ["O", "P"]},
+    {"path": "docs/QUOTA_AND_COST_MODEL.md", "state": "DRAFTED", "answers": ["K", "S"]},
+    {"path": "docs/ADR/0001-initial-architecture.md", "state": "PROPOSED_NOT_ACCEPTED", "answers": ["design_decisions"]},
+    {"path": "TASK_STATE.json", "state": "DRAFTED", "answers": []}
+  ],
+
+  "note_on_completion": "No artifact is marked COMPLETE. DRAFTED means written and internally consistent. Gate 0 exits only on human review plus resolution of the three acceptance-blocking open questions.",
+
+  "gate_0_exit_criteria": [
+    {"id": "G0-1", "criterion": "Human review of all seven documents", "met": false},
+    {"id": "G0-2", "criterion": "OQ-01 resolved (real tool-surface capability survey)", "met": false},
+    {"id": "G0-3", "criterion": "OQ-03 resolved (natural-key probing policy)", "met": false},
+    {"id": "G0-4", "criterion": "OQ-05 resolved (CAS retention per sensitivity class)", "met": false},
+    {"id": "G0-5", "criterion": "ADR-0001 moved from PROPOSED to ACCEPTED", "met": false}
+  ],
+
+  "design_decisions": [
+    {"id": "DD-1", "title": "Runtime gateway is the sole enforcement boundary; model only proposes", "adr": "0001", "status": "PROPOSED"},
+    {"id": "DD-2", "title": "Adjudicated action state with first-class UNKNOWN_OUTCOME; retry legality from a contract-tested capability matrix", "adr": "0001", "status": "PROPOSED"},
+    {"id": "DD-3", "title": "Evidence label is a function of extraction method, enforced at write; LLM may emit only HYPOTHESIS", "adr": "0001", "status": "PROPOSED"},
+    {"id": "DD-4", "title": "Causal claims only from paired fault-injection interventions with divergence-aware replay", "adr": "0001", "status": "PROPOSED"},
+    {"id": "DD-5", "title": "Minimum viable infrastructure; deterministic substrate for ~90% of evaluation trials", "adr": "0001", "status": "PROPOSED"}
+  ],
+
+  "dangerous_assumptions": [
+    {"id": "DA-01", "assumption": "Real enterprise tools expose postcondition probes and idempotency keys at a useful rate.", "risk": "CRITICAL", "invalidates": ["DD-2", "core product thesis"], "test": "OQ-01", "failure_mode": "FM-04"},
+    {"id": "DA-02", "assumption": "Tools declare their consistency model truthfully, or UNDECLARED is never overridden for convenience.", "risk": "HIGH", "invalidates": ["side-effect correctness claim"], "test": "per-tool consistency contract test + replica-lag fault", "failure_mode": "FM-05"},
+    {"id": "DA-03", "assumption": "No retry occurs beneath our gateway (HTTP client, SDK, service mesh).", "risk": "HIGH", "invalidates": ["duplicate-prevention claim"], "test": "SC-11 server-side request-count reconciliation", "failure_mode": "FM-01"},
+    {"id": "DA-04", "assumption": "Deterministic-stub reliability results are predictive of real-model behaviour.", "risk": "HIGH", "invalidates": ["all reliability headline numbers"], "test": "3% remote sample must agree with stub results within stated bounds", "failure_mode": "FM-08"},
+    {"id": "DA-05", "assumption": "Trajectory divergence in CONTROLLED_REPLAY is rare enough for counterfactuals to be obtainable.", "risk": "HIGH", "invalidates": ["DD-4", "the only interventional evidence"], "test": "measure divergence_rate at Gate 5", "failure_mode": "FM-13"},
+    {"id": "DA-06", "assumption": "The control plane remains single-writer, making seq ordering authoritative.", "risk": "MEDIUM", "invalidates": ["all precedence reasoning"], "test": "seq monotonicity assertion at ingest", "failure_mode": "FM-19"},
+    {"id": "DA-07", "assumption": "~6 model calls and ~3000 tokens per execution.", "risk": "MEDIUM", "invalidates": ["every number in QUOTA_AND_COST_MODEL"], "test": "OQ-10, measure at Gate 1", "failure_mode": null},
+    {"id": "DA-08", "assumption": "Hypothesis rubric criteria are sufficiently independent that summing them is meaningful.", "risk": "MEDIUM", "invalidates": ["hypothesis ranking"], "test": "correlation of criteria across >=100 incidents", "failure_mode": "FM-12"},
+    {"id": "DA-09", "assumption": "Identical repeated tool calls indicate a fault rather than legitimate work.", "risk": "MEDIUM", "invalidates": ["loop detection"], "test": "false-positive rate of D-LOOP-REPEAT on polling workloads", "failure_mode": "FM-02"},
+    {"id": "DA-10", "assumption": "The provider budgets in PROJECT_CONTEXT.json are approximately current.", "risk": "MEDIUM", "invalidates": ["QUOTA_AND_COST_MODEL partitioning"], "test": "read live rate-limit headers at Gate 1; never hard-code", "failure_mode": "FM-03"},
+    {"id": "DA-11", "assumption": "Human labelling capacity exists for judge calibration and disputed-grade adjudication.", "risk": "MEDIUM", "invalidates": ["EVALUATION_STRATEGY P.3, P.4"], "test": "OQ-09", "failure_mode": "FM-22"},
+    {"id": "DA-12", "assumption": "The ten design_truths cited in PROJECT_CONTEXT.json as FACT are accurate.", "risk": "MEDIUM", "invalidates": ["any mechanism justified solely by a citation"], "test": "human verification of each source; see PROJECT_CHARTER 0.1", "failure_mode": null}
+  ],
+
+  "architectural_failure_modes": [
+    {"id": "FM-01", "name": "duplicate side effects despite the gateway", "residual_risk": "HIGH"},
+    {"id": "FM-02", "name": "retry storm exhausts execution budget", "residual_risk": "MEDIUM"},
+    {"id": "FM-03", "name": "rate-limit amplification", "residual_risk": "LOW"},
+    {"id": "FM-04", "name": "UNKNOWN_OUTCOME saturation: correct and useless", "residual_risk": "HIGH"},
+    {"id": "FM-05", "name": "probe manufactures the bug it prevents (consistency window)", "residual_risk": "MEDIUM"},
+    {"id": "FM-06", "name": "schema drift silently invalidates keys, detectors, baselines", "residual_risk": "MEDIUM"},
+    {"id": "FM-07", "name": "stale context accepted as current", "residual_risk": "MEDIUM"},
+    {"id": "FM-08", "name": "provider or model drift invalidates baselines", "residual_risk": "HIGH"},
+    {"id": "FM-09", "name": "execution graph explosion", "residual_risk": "LOW"},
+    {"id": "FM-10", "name": "high-cardinality telemetry", "residual_risk": "LOW"},
+    {"id": "FM-11", "name": "silent provider fallback with changed guarantees", "residual_risk": "LOW"},
+    {"id": "FM-12", "name": "false causal inference", "residual_risk": "HIGH"},
+    {"id": "FM-13", "name": "replay fidelity illusion (trajectory divergence)", "residual_risk": "MEDIUM"},
+    {"id": "FM-14", "name": "unreliable LLM judge", "residual_risk": "LOW"},
+    {"id": "FM-15", "name": "benchmark leakage and eval hacking", "residual_risk": "MEDIUM"},
+    {"id": "FM-16", "name": "shared state leaks across trials", "residual_risk": "LOW"},
+    {"id": "FM-17", "name": "security policy bypass at the action boundary", "residual_risk": "MEDIUM"},
+    {"id": "FM-18", "name": "sensitive data accumulates in telemetry and CAS", "residual_risk": "MEDIUM"},
+    {"id": "FM-19", "name": "clock skew and ordering corruption", "residual_risk": "LOW"},
+    {"id": "FM-20", "name": "partial infrastructure failure yields plausible-but-wrong analysis", "residual_risk": "LOW"},
+    {"id": "FM-21", "name": "vendor and framework lock-in", "residual_risk": "LOW"},
+    {"id": "FM-22", "name": "grader bugs invalidate evaluation silently", "residual_risk": "MEDIUM"}
+  ],
+
+  "open_questions": [
+    {"id": "OQ-01", "question": "What fraction of real enterprise write endpoints support an idempotency key or a postcondition probe?", "blocks": "GATE_2", "severity": "BLOCKING_ACCEPTANCE", "resolution_method": "Survey public API docs for three real SaaS surfaces (ticketing, identity, HR). Classify every write endpoint against the four capability properties. Report actual percentages.", "owner": "unassigned"},
+    {"id": "OQ-02", "question": "What is the minimal read scope a postcondition probe needs, and can probing be delegated to tool owners rather than held centrally?", "blocks": "GATE_2", "severity": "HIGH", "resolution_method": "Design exercise informed by OQ-01 findings.", "owner": "unassigned"},
+    {"id": "OQ-03", "question": "Under EVENTUAL consistency with no idempotency key, is natural-key probing acceptable given it can false-positive and suppress a needed retry (a missing side effect rather than a duplicate)?", "blocks": "GATE_2", "severity": "BLOCKING_ACCEPTANCE", "resolution_method": "Domain policy decision. Must be configurable per tool with a stated default.", "owner": "unassigned"},
+    {"id": "OQ-04", "question": "Idempotency-key stability across replay, once LIVE_REEXECUTION can touch a shared environment.", "blocks": "GATE_5", "severity": "MEDIUM", "resolution_method": "Design decision plus egress-guard test.", "owner": "unassigned"},
+    {"id": "OQ-05", "question": "CAS retention period per sensitivity class. Replay needs payloads; privacy wants them gone. Direct tension.", "blocks": "GATE_5", "severity": "BLOCKING_ACCEPTANCE", "resolution_method": "Policy decision with a named owner. Not an engineering choice.", "owner": "unassigned"},
+    {"id": "OQ-06", "question": "Multiple-comparison correction across ~30 detectors firing on one incident.", "blocks": "GATE_4", "severity": "HIGH", "resolution_method": "Requires Gate 4 firing-rate data before an FDR policy can be chosen.", "owner": "unassigned"},
+    {"id": "OQ-07", "question": "Actual current MCP protocol revision and its stability. PROJECT_CONTEXT cites 2026-07-28, unverified. Likewise the exact OpenTelemetry GenAI convention field names and stability level.", "blocks": "GATE_7", "severity": "MEDIUM", "resolution_method": "Read the live specifications. Pin versions. Do not depend on field names until verified.", "owner": "unassigned"},
+    {"id": "OQ-08", "question": "How are the ten task classes defined, and how do we avoid a task set that flatters the architecture we already chose?", "blocks": "GATE_3", "severity": "HIGH", "resolution_method": "Derive classes from the failure taxonomy rather than from convenience; hold out a set never used during development.", "owner": "unassigned"},
+    {"id": "OQ-09", "question": "Is human labelling capacity available for judge calibration, disputed-grade adjudication and held-out review?", "blocks": "GATE_3", "severity": "MEDIUM", "resolution_method": "Ask. If none, remove those controls from the documents rather than describing controls that do not exist.", "owner": "unassigned"},
+    {"id": "OQ-10", "question": "Actual tokens-per-call and calls-per-execution for the reference agent.", "blocks": "GATE_3_PLANNING", "severity": "MEDIUM", "resolution_method": "Measure at Gate 1. Revise QUOTA_AND_COST_MODEL.", "owner": "unassigned"},
+    {"id": "OQ-11", "question": "Does the provider expose token-level rate headers or only request-level? The local bucket must meter tokens.", "blocks": "GATE_2", "severity": "MEDIUM", "resolution_method": "Inspect live response headers at Gate 1.", "owner": "unassigned"},
+    {"id": "OQ-12", "question": "Is a LOCAL_MODEL substrate available in the target environment at all?", "blocks": "GATE_3", "severity": "LOW", "resolution_method": "Check the environment. If absent, the 7% local share moves to DETERMINISTIC_STUB and the ladder loses L2.", "owner": "unassigned"}
+  ],
+
+  "build_sequence": [
+    {"gate": 0, "name": "Architecture before implementation", "status": "IN_REVIEW", "exit": "human review + OQ-01, OQ-03, OQ-05 resolved + ADR-0001 accepted"},
+    {"gate": 1, "name": "Observability substrate", "status": "NOT_STARTED", "scope": "canonical event contract, append-only ledger, CAS with sensitivity classes, reference agent, five synthetic services with declared schemas AND snapshot-restore-by-digest, deterministic stub provider adapter, ground-truth side-effect log unreachable by the agent", "must_land_here": ["snapshot-restore (retrofitting is a rewrite)", "metric-cardinality lint (SC-3)", "import-boundary test (SC-2)", "resource_id attribute-only rule"]},
+    {"gate": 2, "name": "Runtime assurance", "status": "NOT_STARTED", "scope": "action state machine, capability matrix with contract tests, consistency-model declarations, idempotency keys, postcondition probes with consistency windows, execution-level budgets, three loop detectors, deterministic policy decision table behind an OPA-shaped interface", "blocked_by": ["OQ-01", "OQ-03"]},
+    {"gate": 3, "name": "Reliability laboratory", "status": "NOT_STARTED", "scope": "fault injection, per-trial isolation with canaries, paired trial design, McNemar analysis, reliability cell grid with Wilson intervals and printed MDE, substrate split", "blocked_by": ["OQ-08", "OQ-10"]},
+    {"gate": 4, "name": "Failure intelligence", "status": "NOT_STARTED", "scope": "deterministic detectors, execution graph with edge budgets, hypothesis candidate generation, ordinal rubric ranking, coverage manifests, evidence label lattice enforcement", "blocked_by": ["OQ-06"]},
+    {"gate": 5, "name": "Replay and counterfactuals", "status": "NOT_STARTED", "scope": "exact and controlled replay, egress guard, divergence detector, counterfactual evidence records with mandatory divergence_rate", "blocked_by": ["OQ-04", "OQ-05"]},
+    {"gate": 6, "name": "Context integrity", "status": "NOT_STARTED", "scope": "temporal validity intervals, supersession edges, deterministic staleness check before model call, lexical retrieval baseline with measured miss rate"},
+    {"gate": 7, "name": "Security and protocol boundary", "status": "NOT_STARTED", "scope": "MCP adapter behind the internal tool protocol, identity binding, untrusted-tool handling, injection containment test suite, canary detection", "blocked_by": ["OQ-07"]},
+    {"gate": 8, "name": "Presentation", "status": "NOT_STARTED", "scope": "read-only rendering of artifacts that already pass headless tests", "constraint": "NOT a milestone. Every artifact must be produced, tested and exportable headlessly first."}
+  ],
+
+  "enforced_controls": [
+    {"id": "SC-1", "control": "only the gateway imports the transport client or holds a credential", "guards": ["FM-17"], "gate": 2},
+    {"id": "SC-2", "control": "no core analysis module imports a provider, MCP or framework package", "guards": ["FM-21"], "gate": 1},
+    {"id": "SC-3", "control": "metric label sets contain only allow-listed bounded-cardinality keys", "guards": ["FM-10"], "gate": 1},
+    {"id": "SC-4", "control": "EXACT and CONTROLLED replay make zero outbound connections", "guards": ["FM-13"], "gate": 5},
+    {"id": "SC-5", "control": "seeded secrets and synthetic PII never reach the CAS", "guards": ["FM-18"], "gate": 1},
+    {"id": "SC-6", "control": "detector suite passes with the CAS emptied; payload detectors return UNKNOWN", "guards": ["FM-18", "FM-20"], "gate": 4},
+    {"id": "SC-7", "control": "grader isolation; negative-control tasks never pass", "guards": ["FM-15"], "gate": 3},
+    {"id": "SC-8", "control": "ledger role has INSERT only", "guards": ["evidence integrity"], "gate": 1},
+    {"id": "SC-9", "control": "no LLM_SYNTHESIS evidence row carries FACT, CORRELATION, OBSERVATION or COUNTERFACTUAL_EVIDENCE", "guards": ["FM-12"], "gate": 4},
+    {"id": "SC-10", "control": "action dispatched without a matching AuthorizationDecision is caught by invariant scan", "guards": ["FM-17"], "gate": 2},
+    {"id": "SC-11", "control": "gateway attempt_no matches the synthetic environment server-side request count", "guards": ["FM-01"], "gate": 1},
+    {"id": "SC-12", "control": "detector crash injection yields an UNKNOWN evidence record, never silence", "guards": ["FM-20"], "gate": 4}
+  ],
+
+  "banned_in_output": [
+    "root cause",
+    "due to",
+    "because of",
+    "caused by",
+    "a single reliability score without its vector adjacent",
+    "any claim of production readiness"
+  ],
+
+  "llm_usage_policy": {
+    "max_remote_calls_per_incident": 2,
+    "max_prompt_tokens_per_call": 3000,
+    "max_completion_tokens_per_call": 1000,
+    "permitted_uses": ["bounded narration over a complete evidence bundle"],
+    "forbidden_uses": ["authorization", "schema validation", "graph traversal", "rate calculations", "anomaly calculation", "postcondition verification", "evidence bookkeeping", "hypothesis ranking", "grading of headline metrics", "producing any label other than HYPOTHESIS or UNKNOWN"],
+    "degradation_ladder": ["L0 primary", "L1 fallback with recorded provider_switch and changed deployment_id", "L2 local model", "L3 template-rendered structured report, zero inference"],
+    "l3_requirement": "structured output must be byte-identical to L0 structured output; only the prose paragraph may differ"
+  },
+
+  "next_action": "HUMAN_REVIEW. Do not begin Gate 1 implementation. Resolve OQ-01 first: it determines whether the core product thesis survives contact with real tool surfaces."
+}
