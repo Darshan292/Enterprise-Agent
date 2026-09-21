@@ -1,718 +1,534 @@
 # ARCHITECTURE SURFACE
 
-Status: **GATE 0 — PROPOSAL UNDER ADVERSARIAL REVIEW. NOT APPROVED FOR IMPLEMENTATION.**
-Document version: 0.1.0
-Companion documents: `PROJECT_CHARTER.md`, `FAILURE_TAXONOMY.md`, `THREAT_MODEL.md`,
-`EVALUATION_STRATEGY.md`, `QUOTA_AND_COST_MODEL.md`, `ADR/0001-initial-architecture.md`.
+Status: **GATE 0.5 — PIVOTED PROPOSAL UNDER REVIEW. NOT APPROVED FOR IMPLEMENTATION.**
+Document version: 0.2.0 (full rewrite; supersedes 0.1.0)
+
+Companions: `PROJECT_CHARTER.md`, `INTERACTION_MODEL.md`, `REGRESSION_ARTIFACT_SPEC.md`,
+`FAILURE_TAXONOMY.md`, `THREAT_MODEL.md`, `EVALUATION_STRATEGY.md`, `QUOTA_AND_COST_MODEL.md`,
+`COMPETITIVE_OVERLAP.md`, `ADR/0001-initial-architecture.md`.
 
 ---
 
-## The governing principle
+## The governing loop
 
 ```
-observe  →  verify  →  analyze  →  hypothesize  →  replay  →  decide
+  model factors → plan experiments → run trials → evaluate oracles
+       ↑                                                 ↓
+       └── compile regression ← fingerprint ← reduce ← detect violation
+                                      ↓
+                              estimate interaction (designed follow-up only)
 ```
 
-Each arrow is a narrowing. `observe` produces the largest set and the weakest claims.
-`decide` produces the smallest set and the strongest. **No stage may emit a claim stronger than
-the stage that fed it.** This is enforced structurally: the evidence schema carries a label, and
-the label is a function of the extraction method, not of anyone's confidence.
-
-The rejected alternative — `observe → ask LLM → trust answer` — fails because it collapses all
-six stages into one, discards the narrowing, and makes the strength of the final claim a
-function of the model's prose style.
+The agent is **inside** the loop as the system under test. It is never the thing that runs the
+loop. An LLM appears at exactly one optional point: narrating a completed bundle.
 
 ---
 
 ## E. Minimum architecture — the single diagram
 
 ```
-  UNTRUSTED ZONE                    ║  TRUSTED RUNTIME  ║          DETERMINISTIC ANALYSIS PLANE
- ═══════════════════════════════════╬═══════════════════╬═══════════════════════════════════════
-                                    ║                   ║
-  ┌──────────────────┐   proposed   ║ ╔═══════════════╗ ║
-  │ MODEL            │──tool call──▶║ ║   RUNTIME     ║ ║   append-only
-  │ remote LLM       │              ║ ║   GATEWAY     ║ ║   ┌──────────────────────────────┐
-  │ output = a       │◀──context────║ ║               ║ ║══▶│ EVIDENCE LEDGER              │
-  │ PROPOSAL, never  │              ║ ║ 1 authorize   ║ ║   │  events(execution_id, seq)   │
-  │ an authorization │              ║ ║ 2 budget      ║ ║   │  + CAS payload store (CID)   │
-  └──────────────────┘              ║ ║ 3 idem-key    ║ ║   │  + sensitivity class per obj │
-                                    ║ ║ 4 DISPATCH    ║ ║   └───────────────┬──────────────┘
-  ┌──────────────────┐   result     ║ ║ 5 probe       ║ ║                   │ pure reads
-  │ TOOL OUTPUT      │─────────────▶║ ║ 6 ADJUDICATE  ║ ║                   ▼
-  │ untrusted data.  │              ║ ╚═══════╤═══════╝ ║   ┌──────────────────────────────┐
-  │ NEVER an         │              ║         │         ║   │ DETECTOR SUITE               │
-  │ instruction.     │              ║         │side     ║   │ pure fns, versioned, no LLM  │
-  └────────▲─────────┘              ║         │effect   ║   └───────────────┬──────────────┘
-           │                        ║         ▼         ║                   ▼
-  ┌────────┴──────────────────────┐ ║                   ║   ┌──────────────────────────────┐
-  │ SYNTHETIC ENTERPRISE ENV      │◀╫─────────          ║   │ EXECUTION GRAPH (in-process) │
-  │  kb │ hr │ ticket │ iam │ noti│ ║                   ║   │ built on demand from ledger  │
-  │  declared schemas + versions  │ ║                   ║   └───────────────┬──────────────┘
-  │  ┌─────────────────────────┐  │ ║                   ║                   ▼
-  │  │ FAULT INJECTOR          │  │ ║                   ║   ┌──────────────────────────────┐
-  │  │ = THE INTERVENTION      │  │ ║                   ║   │ HYPOTHESIS GENERATOR         │
-  │  │ seeded, per-trial       │  │ ║                   ║   │ deterministic candidates,    │
-  │  └───────────▲─────────────┘  │ ║                   ║   │ ordinal rubric, ranked list, │
-  └──────────────┼────────────────┘ ║                   ║   │ each with a FALSIFIER        │
-                 │                  ║                   ║   └───────────────┬──────────────┘
-                 │ treatment on/off ║                   ║                   │ falsifier
-                 │                  ║                   ║                   ▼
-  ┌──────────────┴────────────────────────────────────┐ ║   ┌──────────────────────────────┐
-  │ REPLAY ENGINE                                     │◀╫───│ REPLAY REQUEST               │
-  │  EXACT       — ledger-served, no external I/O     │ ║   └──────────────────────────────┘
-  │  CONTROLLED  — frozen fixtures + fault toggled    │─╫──────────┐
-  │  LIVE        — real calls, NO determinism claim   │ ║          │ paired trials + divergence
-  │  ┌─────────────────────────────────────────────┐  │ ║          ▼
-  │  │ DIVERGENCE DETECTOR                         │  │ ║   ┌──────────────────────────────┐
-  │  │ truncates replay at first off-policy point  │  │ ║   │ COUNTERFACTUAL_EVIDENCE      │
-  │  └─────────────────────────────────────────────┘  │ ║   │ n, effect, interval,         │
-  └───────────────────────────────────────────────────┘ ║   │ divergence_rate — or refusal │
-                                                        ║   └───────────────┬──────────────┘
-  ┌──────────────────────────────────────────────┐      ║                   ▼
-  │ RELIABILITY HARNESS  R(k, perturbation,fault)│──────╫──▶┌──────────────────────────────┐
-  │ isolated env per trial, seeded, statistics   │      ║   │ EVIDENCE BUNDLER  token-capped│
-  └──────────────────────────────────────────────┘      ║   └───────────────┬──────────────┘
-                                                        ║          0–2 calls│ OPTIONAL
-                                                        ║                   ▼
-                                                        ║   ┌──────────────────────────────┐
-                                                        ║   │ LLM EXPLAINER                │
-                                                        ║   │ narration ONLY. Cannot emit   │
-                                                        ║   │ FACT. Removable without loss │
-                                                        ║   │ of any structured output.    │
-                                                        ║   └──────────────────────────────┘
+   SYSTEM UNDER TEST          ║  CONTROLLED BOUNDARY  ║      EXPERIMENT PLANE (deterministic)
+ ══════════════════════════════╬══════════════════════╬════════════════════════════════════════
+                               ║                      ║
+  ┌─────────────────────────┐  ║ ╔══════════════════╗ ║  ┌──────────────────────────────────┐
+  │ AGENT UNDER TEST        │  ║ ║ EXECUTION        ║ ║  │ FACTOR MODEL           (C1)      │
+  │  planner + model        │──╫▶║ ADAPTER          ║ ║  │  factors, levels, constraints    │
+  │  model_config is a      │  ║ ║                  ║ ║  └────────────────┬─────────────────┘
+  │  FACTOR, not a fixture  │◀─╫─║ holds the ONLY   ║ ║                   ▼
+  └─────────────────────────┘  ║ ║ DispatchCapability║ ║ ┌──────────────────────────────────┐
+                               ║ ║                  ║ ║  │ EXPERIMENT PLANNER     (C2)      │
+  ┌─────────────────────────┐  ║ ║ 1 authorize      ║ ║  │  covering arrays (t=2, then 3)   │
+  │ SYNTHETIC ENVIRONMENT   │◀─╫─║ 2 budget         ║ ║  │  constraint-aware generation     │
+  │  kb│hr│ticket│iam│notify│  ║ ║ 3 effect_id      ║ ║  │  state-machine sequences         │
+  │                         │  ║ ║ 4 dispatch       ║ ║  │  metamorphic relations           │
+  │  CAPABILITY PROFILE     │  ║ ║ 5 reconcile      ║ ║  │  budget-aware schedule           │
+  │  CP1..CP8 IS A FACTOR   │  ║ ║ 6 adjudicate     ║ ║  └────────────────┬─────────────────┘
+  │                         │  ║ ╚═════════╤════════╝ ║           ┌───────┴────────┐
+  │  ┌───────────────────┐  │  ║           │          ║           ▼        (C3)    ▼
+  │  │ GROUND-TRUTH      │  │  ║           │ events   ║  ┌────────────────┐ ┌──────────────┐
+  │  │ EFFECT LOG        │  │  ║           ▼          ║  │ RUNNER +       │ │ ADAPTIVE     │
+  │  │ agent cannot read │  │  ║  ┌──────────────────┐║  │ FAULT INJECTOR │ │ EXPANSION    │
+  │  └─────────┬─────────┘  │  ║  │ CANONICAL EVENT  │║  │ seeded, 1 trial│ │ Hamming d=1  │
+  │            │            │  ║  │ LEDGER           │║  └───────┬────────┘ └──────────────┘
+  │  ┌─────────▼─────────┐  │  ║  │ append-only      │║          │ trial records
+  │  │ VERSIONED FIXTURE │◀─╫──╫──│ (execution, seq) │║          ▼
+  │  │ STORE             │  │  ║  └────────┬─────────┘║  ┌──────────────────────────────────┐
+  │  │ snapshot/restore  │  │  ║           │          ║  │ ORACLE ENGINE          (C4)      │
+  │  │ BY DIGEST         │  │  ║           └──────────╫─▶│ INV-1..INV-9, versioned, pure    │
+  │  └───────────────────┘  │  ║                      ║  │ holds the only OracleCapability  │
+  └─────────────────────────┘  ║                      ║  └────────────────┬─────────────────┘
+                               ║                      ║          VIOLATED │
+  ┌──────────────────────────────────────────────┐    ║                   ▼
+  │ FAILURE REDUCER               (C6)           │    ║  ┌──────────────────────────────────┐
+  │  ddmin + r_confirm + fingerprint-aware       │◀───╫──│ FAILURE RECORD                   │
+  │  accept. CONTROLLED_REPLAY only.             │    ║  └──────────────────────────────────┘
+  │  REDUCTION_UNSTABLE is a terminal state.     │    ║
+  └───────────────────┬──────────────────────────┘    ║
+                      ▼                                ║
+  ┌──────────────────────────────┐   ┌─────────────────────────────────────────────────┐
+  │ FINGERPRINT + CLUSTER  (C7)  │──▶│ INTERACTION ANALYZER              (C5)          │
+  │ stability metric, not truth  │   │ ONLY Phase-3 designed factorials.               │
+  └───────────────┬──────────────┘   │ Contingency + logistic interaction + BH-FDR.    │
+                  │                  │ Covering-array data CANNOT feed this.           │
+                  ▼                  └─────────────────────────────────────────────────┘
+  ┌──────────────────────────────┐
+  │ REGRESSION COMPILER    (C8)  │──▶  regression artifact: manifest, seed, levels,
+  │ reproduction_rate + interval │     fixture digest, oracle, replay mode, limitations
+  └───────────────┬──────────────┘
+                  ▼
+  ┌──────────────────────────────┐        ┌──────────────────────────────────────────┐
+  │ COVERAGE ACCOUNTING    (C9)  │───────▶│ OPTIONAL LLM NARRATOR                    │
+  │ reports the UNEXPLORED space │        │ pure fn (EvidenceBundle) -> str.         │
+  └──────────────────────────────┘        │ Holds NO capability token, therefore     │
+                                          │ CANNOT construct an ObservedEvent, an    │
+                                          │ OracleVerdict, or a ReductionStep.       │
+                                          │ Delete it: structured output unchanged.  │
+                                          └──────────────────────────────────────────┘
 ```
 
-**Read the diagram as a claim about trust, not about boxes.** The double line is the only thing
-that matters: everything to its left proposes, the gateway decides, everything to its right
-observes what was decided. The model never crosses the line. Tool output never crosses the line.
+**Read the diagram as a claim about capability, not about boxes.** The narrator is not
+*forbidden* from producing an oracle verdict; it is *unable* to, because it is never handed an
+`OracleCapability`. That is the correction from 0.1.0, where the same guarantee was a linter.
 
 ---
 
-## G. Trust boundaries
+## G. Trust boundaries and capability isolation
 
-`DESIGN_DECISION`: the runtime gateway is the *only* enforcement point. Everything else is
-either a proposer or an observer.
+`DESIGN_DECISION` (pivot correction 8): the primary control is **typed capability tokens**, not
+source lint. A capability is an unforgeable construction token held by exactly one component.
 
-| # | Boundary | Left side (untrusted) | Right side (trusted) | Enforcement mechanism |
-|---|---|---|---|---|
-| TB-1 | **Model → Gateway** | Model output: tool name, arguments, natural language | Gateway | Schema validation (deterministic), policy decision (deterministic), budget check (deterministic). Model output is a *proposal record*, persisted as such. |
-| TB-2 | **Tool output → Agent context** | Tool response bodies, retrieved documents, notification text | Agent context assembly | Tool output is tagged `provenance=UNTRUSTED_TOOL` and wrapped with a structural delimiter on ingest. No instruction extracted from it is ever executed without passing TB-1 again. Injection is *contained*, not *prevented* — see `THREAT_MODEL` §3. |
-| TB-3 | **Gateway → Enterprise resource** | — | The side-effecting call itself | Identity is bound at the gateway from the execution's `actor_identity`, never from model output. Credentials are never present in model context. |
-| TB-4 | **Ledger write path** | Anything upstream | Append-only ledger | Ledger is append-only by schema constraint (no UPDATE/DELETE grant to the writing role). Derived interpretations live in separate tables that reference ledger rows; they never mutate them. |
-| TB-5 | **Agent plane ↔ Evaluation plane** | Agent process | Grader process | Separate OS process, separate DB credentials, no shared filesystem path, no environment variable overlap. Graders are not importable from agent code. See `EVALUATION_STRATEGY` §P. |
-| TB-6 | **LLM Explainer → Evidence** | Explainer output | Evidence graph | Explainer output is written with `extraction_method=LLM_SYNTHESIS`, which the schema forbids from carrying `FACT` or `COUNTERFACTUAL_EVIDENCE`. Enforced at write, not at review. |
-| TB-7 | **Replay engine → Real world** | Replay | External systems | `EXACT` and `CONTROLLED` modes run with the tool dispatcher bound to a ledger-backed or fixture-backed implementation. A network egress guard asserts zero outbound calls in those modes and fails the replay if violated. This is a test, not a convention. |
-
-### G.1 The boundary that does not exist and must be acknowledged
-
-There is **no** boundary between the control plane and the synthetic environment's backing store
-at Gate 1–3, because the verification probe needs to read it. That means the control plane can
-read enterprise state. In a real deployment this is a significant privilege and a real attack
-surface. `OQ-02`: define the minimal read scope a postcondition probe requires, and whether it
-can be delegated to the tool owner rather than held by the control plane.
-
----
-
-## H. Canonical execution and event model
-
-### H.1 The three-level hierarchy
-
-```
-Execution      one agent run against one task, under one deployment
-  └── Step     one model turn: context → model → proposal(s)
-        └── Attempt   one dispatch of one tool call, including its probe
-```
-
-`DESIGN_DECISION`: three levels, not two, because retries must be distinguishable from new
-decisions. A retry is a new `Attempt` under the *same* logical action; a re-plan is a new `Step`.
-Collapsing these makes `FM-02` (retry storm) and `FM-13` (loop) indistinguishable from normal
-work.
-
-`Action` is the logical unit that `Attempt`s belong to. An `Action` has one state (§I); an
-`Attempt` has a transport-level result. **Multiple attempts, one action, one state.** This is
-the single most important modelling choice in the system, and the one the KNOWLEDGE_GRAPH's flat
-`execution → CALLS → tool` edge obscures.
-
-### H.2 Ordering — the clock problem, confronted
-
-`FACT`: wall-clock timestamps across processes are not a reliable order. `KNOWLEDGE_GRAPH.json`
-lists `timestamp` as a minimum field and `causal_evidence_rules` states
-*"temporal_precedence is necessary but insufficient"*. **If wall-clock order is unreliable, then
-the one condition the causal rules declare *necessary* is unverifiable.** That is a hole in the
-proposal, not a detail.
-
-`DESIGN_DECISION`: four ordering fields, with explicit and different semantics.
-
-| Field | Source | Semantics | Used for |
+| Capability | Held by | Gates construction of | Consequence of not holding it |
 |---|---|---|---|
-| `seq` | Monotonic counter, per `execution_id`, assigned by the emitting process | **Total order within an execution. Authoritative.** | All ordering, all graph edges, all precedence reasoning. |
-| `causal_parent_event_id` | Explicit | Happens-before edge. Authoritative across executions. | Cross-execution precedence. |
-| `t_emit` | Producer wall clock (with the producer's monotonic delta recorded) | **Advisory.** May be skewed, may go backwards. | Latency computation *within one process only*; human display. |
-| `t_recv` | Ledger ingest wall clock | Authoritative for ingest ordering and retention only. | SLO on ingest lag; never for causality. |
+| `DispatchCapability` | Execution adapter only | `DispatchHandle` — the only path to a side effect | No component can reach the environment |
+| `LedgerReadCapability` | Ledger reader only | `ObservedEvent` | **The narrator cannot manufacture an observation** |
+| `OracleCapability` | Oracle engine only | `OracleVerdict` | **No model output can become a verdict** |
+| `ReducerCapability` | Failure reducer only | `ReductionStep` | Reduction history cannot be fabricated |
+| `FixtureWriteCapability` | Fixture store writer only | `FixtureVersion` | Fixtures are immutable to everyone else |
+| `InterventionCapability` | Phase-3 runner only | `ControlledInterventionResult` | Screening data cannot masquerade as an intervention |
 
-**Hard rule:** no detector, graph edge, or hypothesis criterion may use `t_emit` to establish
-precedence between events from different processes. A lint test scans detector source for this.
-Where cross-process precedence is genuinely needed and no causal edge exists, the answer is
-`UNKNOWN`, not a timestamp comparison.
+`ASSUMPTION` (owner: architect; invalidation: a reflection-based bypass is demonstrated): in
+Python, construction tokens are enforceable in practice but not against a determined bypass. This
+is a **structural** control, stronger than lint, weaker than a memory-safe capability system. It
+is described as exactly that and nothing more. Static lint remains as a **secondary** check
+(`THREAT_MODEL` SC-list).
 
-`ASSUMPTION` (owner: architect; invalidation: control plane becomes multi-process):
-a single-writer control plane makes `seq` trivially correct. When that stops being true,
-`seq` needs a Lamport clock and this section must be revisited before, not after.
-
-### H.3 Event envelope
-
-Superset of `KNOWLEDGE_GRAPH.event_minimum_fields`. Deltas from that list are marked.
+### G.1 Zones
 
 ```
-EventEnvelope
-  # identity & order
-  event_id                 uuid7                       # sortable, but seq is authoritative
-  execution_id             uuid
-  seq                      int64          [ADDED]      # authoritative order
-  trace_id                 str                         # OTel correlation
-  parent_event_id          uuid | null
-  causal_parent_event_id   uuid | null    [ADDED]
-  # time
-  t_emit                   timestamptz                 # advisory (was: timestamp)
-  t_recv                   timestamptz    [ADDED]
-  monotonic_ns             int64 | null   [ADDED]      # producer monotonic, for intra-process latency
-  # what
-  event_type               enum                        # closed set, versioned
-  schema_version           str                         # of THIS envelope
-  # actors
-  agent_id                 str
-  actor_identity           str                         # the identity the ACTION runs as
-  deployment_id            str            [ADDED]      # pins model+policy+toolset+code versions
-  # subject
-  provider                 str | null
-  model                    str | null
-  tool_name                str | null
-  tool_schema_version      str | null                  # (was: schema_version, ambiguous)
-  resource_id              str | null                  # HIGH CARDINALITY — attribute only, never a metric dimension
-  action_id                uuid | null    [ADDED]      # logical action this attempt belongs to
-  attempt_no               int            [ADDED]
-  idempotency_key          str | null     [ADDED]
-  # outcome
-  status                   enum
-  action_state             enum | null    [ADDED]      # §I state after this event
-  outcome_basis            enum           [ADDED]      # TRANSPORT | PROBE | COMPENSATION | DECLARED | NONE
-  latency_ms               int | null
-  retry_count              int
-  # payload references — NOT payloads
-  input_cid                str | null                  # (was: input_hash) content id into CAS
-  output_cid               str | null                  # (was: output_hash)
-  input_digest             str | null                  # sha256, for equality without retrieval
-  output_digest            str | null
-  # governance
-  policy_decision          enum | null                 # ALLOW | DENY | ALLOW_WITH_OBLIGATIONS
-  policy_version           str | null     [ADDED]
-  sensitivity_class        enum                        # PUBLIC | INTERNAL | CONFIDENTIAL | RESTRICTED
-  provenance_ref           str | null
-  redaction_applied        bool           [ADDED]
+ZONE U — UNTRUSTED     model output; tool response bodies; retrieved content
+ZONE S — SUT           agent under test, its planner, its model config (A FACTOR)
+ZONE C — CONTROLLED    execution adapter, synthetic environment, fault injector, fixture store
+ZONE X — EXPERIMENT    planner, runner, oracles, reducer, analyzer, compiler
+ZONE G — GROUND TRUTH  environment effect log. Readable by ZONE X only. NEVER by ZONE S.
 ```
 
-### H.4 Why `input_hash` alone was wrong — and what replaces it
-
-The bootstrap and knowledge graph specify `input_hash` / `output_hash`. `FACT`: a hash supports
-**equality testing** and nothing else. You cannot root-cause a failure from a hash. You cannot
-build a counterfactual from a hash. You cannot show a reviewer why the agent did something from
-a hash.
-
-So a hash-only design does not solve the sensitivity problem; it *relocates* it, because the
-moment root-cause analysis is actually attempted, someone will start logging payloads next to
-the hashes with no controls at all.
-
-`DESIGN_DECISION`: split the concern explicitly.
-- **Envelope** carries `*_digest` (sha256) — cheap, non-sensitive, sufficient for equality,
-  duplicate detection, cache keys, and drift detection.
-- **Content-addressed store (CAS)** holds the payload under `*_cid`, with its own
-  `sensitivity_class`, its own retention policy, its own access control, and its own redaction
-  record. Separate table, separate grants, separately droppable.
-- **Deleting the CAS must leave the ledger valid and every detector functional.** This is a
-  test: run the full detector suite with the CAS emptied; only payload-inspecting detectors may
-  degrade, and they must degrade to `UNKNOWN`, not crash and not silently pass.
-
-That property — *the system still works with all payloads deleted* — is what makes the privacy
-story real rather than aspirational.
+`ZONE G` unreachable from `ZONE S` is the property that makes every oracle deterministic and
+makes LLM judges unnecessary (`EVALUATION_STRATEGY` §P.1). It is enforced by separate database
+credentials and verified by an agent-credential permission test, not by convention.
 
 ---
 
-## I. Execution state machine
+## H. Canonical event and experiment model
 
-`DESIGN_DECISION`: states are exactly those in `KNOWLEDGE_GRAPH.execution_state_machine`. No
-states invented. The contribution is the *transition rules* and the *guards*, which the
-knowledge graph does not specify.
-
-State belongs to an **Action**, not to an attempt and not to an execution.
+### H.1 Hierarchy
 
 ```
-                            ┌──────────┐
-                            │ PLANNED  │  model proposed a tool call
-                            └────┬─────┘
-              policy DENY / budget exhausted / schema invalid
-                    ┌────────────┼────────────────────────────┐
-                    ▼            ▼ policy ALLOW                │
-              ┌──────────┐  ┌────────────┐                     │
-              │ ABORTED  │  │ AUTHORIZED │                     │
-              │ terminal │  └─────┬──────┘                     │
-              └──────────┘        │ gateway sends request      │
-                    ▲             ▼                            │
-                    │       ┌────────────┐                     │
-                    │       │ DISPATCHED │ ◀───────────────┐   │
-                    │       └─────┬──────┘   retry (only   │   │
-                    │             │          if RETRYABLE, │   │
-         ┌──────────┼─────────────┼──────────┐  see §J)    │   │
-         │          │             │          │             │   │
-  transport 2xx  transport 4xx/5xx    timeout / conn reset │   │
-         │          │             │          │             │   │
-         ▼          │             │          ▼             │   │
-  ┌─────────────┐   │             │   ┌────────────────┐   │   │
-  │ACKNOWLEDGED │   │             │   │ UNKNOWN_OUTCOME│───┘   │
-  │ tool CLAIMS │   │             │   │  FIRST CLASS.  │       │
-  │ success.    │   │             │   │  MAY BE        │       │
-  │ NOT proof.  │   │             │   │  TERMINAL.     │       │
-  └──────┬──────┘   │             │   └───┬────────┬───┘       │
-         │          │             │       │probe   │ no probe  │
-         │ probe    │             │       │        │ available │
-         ▼          ▼             ▼       ▼        ▼           │
-  ┌──────────────────────┐  ┌──────────────────┐  ┌──────────┐ │
-  │  VERIFIED_SUCCESS    │  │ VERIFIED_FAILURE │  │ ESCALATE │─┘
-  │  postcondition holds │  │ postcond absent  │  │ (human)  │
-  │  terminal            │  │ AND outside      │  │ stays    │
-  └──────────────────────┘  │ consistency wnd  │  │ UNKNOWN  │
-                            └────────┬─────────┘  └──────────┘
-                                     │ compensation available
-                                     ▼
-                            ┌────────────────┐
-                            │  COMPENSATED   │ terminal
-                            └────────────────┘
+Experiment  →  Trial  →  Execution  →  Step  →  Attempt
+                                              (one dispatch of one Action)
 ```
 
-### I.1 The guards that make this non-trivial
+An **Action** is the logical unit carrying one adjudicated state. Multiple `Attempt`s, one
+`Action`, one state. A retry is a new `Attempt`; a re-plan is a new `Step`.
 
-| Transition | Guard | Rationale |
+### H.2 Ordering
+
+`seq` (monotonic per execution, assigned by the single-writer adapter) and
+`causal_parent_event_id` are **authoritative**. `t_emit` is **advisory** and may not be used for
+cross-process precedence. `t_recv` is for ingest SLO and retention only.
+
+`ASSUMPTION` (DA-06): single-writer per execution makes `seq` trivially correct. Multi-writer
+requires a Lamport clock, designed before scaling.
+
+### H.3 Effect identity — pivot correction 2
+
+Three **separate** fields. Conflating any two is a correctness bug.
+
+| Field | Derivation | Stable across |
 |---|---|---|
-| `PLANNED → AUTHORIZED` | Policy `ALLOW`, budget available, arguments validate against `tool_schema_version`, identity resolved. All deterministic. **No LLM.** | Rule 5 of the project constraints. |
-| `PLANNED → ABORTED` | Policy `DENY`, or budget exhausted, or schema invalid. `abort_reason` is a closed enum. | The knowledge graph has no `DENIED` state; `ABORTED` + reason covers it without inventing one. |
-| `DISPATCHED → ACKNOWLEDGED` | Transport-level success only. **`outcome_basis=TRANSPORT`.** | A 2xx is the tool's *claim*. Claims are evidence, not proof. This is why `ACKNOWLEDGED` exists as a distinct state from `VERIFIED_SUCCESS` — and it is the state most systems wrongly treat as terminal success. |
-| `ACKNOWLEDGED → VERIFIED_SUCCESS` | Postcondition probe returns the expected state. **`outcome_basis=PROBE`.** | See §I.2 for the case where no probe exists. |
-| `DISPATCHED → UNKNOWN_OUTCOME` | Timeout, connection reset, or any condition where the request may or may not have been received. | `FACT`: a timeout is not evidence of non-occurrence. Project rule 7. |
-| `UNKNOWN_OUTCOME → DISPATCHED` (retry) | **Only if** the capability matrix (§J) returns `RETRY_SAFE`. | This guard is the product. |
-| `UNKNOWN_OUTCOME → ESCALATE` | Retry not safe and no probe available. | Terminal for the automated system. Correct answer, small product, see `OQ-01`. |
-| `* → VERIFIED_FAILURE` | Probe confirms absence **and** the consistency window has elapsed. | See §I.2. |
+| `effect_id` | `HMAC(deployment_secret, execution_id ‖ logical_step_id ‖ semantic_key(args))` | retries, serialization changes, schema changes |
+| `request_digest` | `sha256(canonical_wire_bytes)` | nothing — changes on any byte change |
+| `schema_version` | declared by the tool contract | tool contract revisions |
 
-### I.2 The consistency-window trap — the safety mechanism that creates the bug
+**Rules (enforced at the adapter, not by review):**
+1. A retry of the same logical effect **must** present the same `effect_id`.
+2. `semantic_key` changed but the planner did not declare a new logical step ⇒ **fail closed**
+   (`ABORTED`, reason `EFFECT_IDENTITY_VIOLATION`). Never a silent new key.
+3. `request_digest` changed with `effect_id` unchanged ⇒ serialization or schema drift. Recorded
+   as an observation; does **not** change dedup identity.
+4. A tool that cannot supply `semantic_key` has `CP1 = UNSTABLE`, which forces
+   `CP2 = NON_IDEMPOTENT_WRITE` treatment regardless of what it declares.
 
-**This is the most dangerous flaw in the naive version of this design and it must be fixed
-before Gate 2.**
-
-The proposal says: on timeout, probe; if the postcondition does not hold, it is safe to retry.
-
-`FACT`: many real enterprise APIs are **eventually consistent**. A write commits to a primary;
-a read served from a replica does not see it for some window. Therefore:
-
-1. `ticket.create` commits successfully.
-2. Response is lost → `UNKNOWN_OUTCOME`.
-3. Probe runs immediately, hits a replica, returns "not found".
-4. System concludes `VERIFIED_FAILURE` and retries.
-5. **Duplicate side effect — caused by the mechanism we built to prevent duplicate side effects.**
-
-This is strictly worse than not probing at all, because it converts an honest `UNKNOWN` into a
-confident wrong answer.
-
-`DESIGN_DECISION` — the fix, which is mandatory, not optional:
-
-- Every tool **must declare** `consistency_model ∈ {STRONG, BOUNDED_STALENESS, EVENTUAL, UNDECLARED}`
-  and, if bounded, a `staleness_bound_ms`.
-- A probe returning "absent" is interpreted as:
-
-  | consistency_model | elapsed < bound | elapsed ≥ bound |
-  |---|---|---|
-  | `STRONG` | `VERIFIED_FAILURE` | `VERIFIED_FAILURE` |
-  | `BOUNDED_STALENESS` | **`UNKNOWN_OUTCOME` (re-probe after bound)** | `VERIFIED_FAILURE` |
-  | `EVENTUAL` | `UNKNOWN_OUTCOME` | **`UNKNOWN_OUTCOME` — never `VERIFIED_FAILURE` on absence alone** |
-  | `UNDECLARED` | `UNKNOWN_OUTCOME` | `UNKNOWN_OUTCOME` |
-
-- `UNDECLARED` is the default. A tool that has not declared its consistency model can never
-  produce `VERIFIED_FAILURE` from a negative probe. This makes the safe configuration the lazy
-  one, which is the only kind of safe default that survives contact with engineers.
-- Probes are budgeted: `max_probe_attempts`, `probe_backoff`, and a hard deadline. Exhausting
-  the probe budget yields `ESCALATE`, never a guess.
-
-`OPEN_QUESTION` `OQ-03`: under `EVENTUAL` with no idempotency key, a negative probe is
-permanently uninformative, so the action is permanently `UNKNOWN`. Is a "probe by natural key
-with a wide time window and fuzzy match" acceptable, given it can produce false positives
-(matching a *different* record)? A false positive here suppresses a needed retry — a *missing*
-side effect rather than a duplicate. Which error is worse is a domain policy question, not an
-engineering one. It must be configurable per tool and the default must be stated.
-
-### I.3 What the state machine does NOT do
-
-It does not make the execution correct. An action can be `VERIFIED_SUCCESS` for a ticket that
-should never have been created. Outcome adjudication answers *"did it happen exactly once?"*,
-never *"should it have happened?"*. The second question belongs to policy (before) and
-evaluation (after). Conflating them is a category error and inflates what the system claims.
-
----
-
-## J. Non-atomic tool calls — the capability matrix
-
-`DESIGN_DECISION`: retry legality is a **lookup in a decision table**, not a judgement.
-
-### J.1 Declared tool properties
-
-Each tool declares, in its contract:
-
-| Property | Type | Verified by |
-|---|---|---|
-| `is_read_only` | bool | Contract test: call twice, assert backing store digest unchanged. |
-| `accepts_idempotency_key` | bool | Contract test: same key twice → one effect, second returns the first result. |
-| `has_postcondition_probe` | bool | Contract test: probe exists, is read-only, and detects a known write. |
-| `has_compensation` | bool | Contract test: compensation restores the pre-state digest. |
-| `consistency_model` | enum | Contract test: write-then-immediate-read behaviour matches the declaration. |
-
-**A declared property that fails its contract test fails the build.** A tool cannot lie about
-itself in a way that survives CI. This is what converts the capability matrix from documentation
-into a mechanism.
-
-### J.2 The decision table
-
-Input: action state `UNKNOWN_OUTCOME`. Output: the only legal next transition.
-
-| `is_read_only` | `accepts_idem_key` | `has_probe` | Verdict | Next |
-|---|---|---|---|---|
-| true | — | — | `RETRY_SAFE` | Retry immediately. Read-only ⇒ no side effect to duplicate. |
-| false | true | — | `RETRY_SAFE` | Retry with the **same** key. Server deduplicates. |
-| false | false | true | `PROBE_THEN_DECIDE` | Probe under §I.2 rules. Retry only on `VERIFIED_FAILURE`. |
-| false | false | false | **`BLIND_WRITE — NEVER RETRY`** | `ESCALATE`. Terminal for automation. |
-
-The bottom row is the point of the whole exercise. A non-idempotent, unverifiable write that
-timed out is **irrecoverable by any automated means**, and every system that retries it is
-generating duplicates it cannot detect. Naming that row, and refusing to retry it, is worth more
-than the rest of the analysis plane combined.
-
-### J.3 Idempotency key derivation
-
-`idempotency_key = sha256(execution_id ‖ action_id ‖ canonical_json(arguments) ‖ tool_schema_version)`
-
-`DESIGN_DECISION`: derived, not random, so it survives control-plane restart and is stable across
-attempts. `action_id` (not `attempt_no`) is included so retries share a key. `tool_schema_version`
-is included so a schema change deliberately produces a *different* key — silently reusing a key
-across a schema change is a correctness hazard.
-
-`OPEN_QUESTION` `OQ-04`: key stability across *replay*. In `CONTROLLED_REPLAY` the same key
-would be derived. If a replay ever touched a real system it would be deduplicated against the
-original — which is accidentally safe, but relies on the server's key retention window. Since
-TB-7 forbids external I/O in replay modes anyway, this is currently moot; it stops being moot the
-moment `LIVE_REEXECUTION` runs against a shared environment. Must be resolved before Gate 5.
-
-### J.4 Compensation
-
-Compensation is offered, never assumed. `has_compensation=true` obliges the tool to supply a
-compensating operation whose contract test restores the pre-state digest. Compensation is itself
-a side-effecting action: it gets its own `action_id`, its own state machine instance, and can
-itself end in `UNKNOWN_OUTCOME`. **There is no bottom.** The recursion terminates at `ESCALATE`
-with a bounded depth of 1 — we do not compensate a failed compensation automatically.
-
----
-
-## K. Rate limits, retries, and runaway loops
-
-Full arithmetic in `QUOTA_AND_COST_MODEL.md`. Mechanisms here.
-
-### K.1 Budgets are per-execution and hierarchical
-
-`DESIGN_DECISION`: the single most common cause of retry storms is that retry counters are
-per-call. Three nested calls with three retries each is nine calls, and nobody wrote "9"
-anywhere.
+### H.4 Event envelope (deltas from 0.1.0 marked)
 
 ```
-ExecutionBudget            # allocated once, decremented by everything beneath
-  max_steps                # hard ceiling on model turns
-  max_actions              # hard ceiling on tool dispatches, retries INCLUDED
-  max_retries_total        # shared pool across ALL actions in this execution
-  max_tokens_total
-  max_wall_clock_ms
-  max_probe_attempts_total
-  max_cost_units
+  event_id, execution_id, trial_id [ADDED], experiment_id [ADDED]
+  seq, causal_parent_event_id, parent_event_id, trace_id
+  t_emit (advisory), t_recv, monotonic_ns
+  event_type, envelope_schema_version
+  agent_version [ADDED], environment_version [ADDED], oracle_version [ADDED]
+  actor_identity, agent_id
+  factor_assignment_digest [ADDED]          # which experiment cell this trial is
+  seed [ADDED], fixture_digest [ADDED]
+  tool_name, tool_schema_version, resource_id      # resource_id: ATTRIBUTE ONLY, never a metric label
+  action_id, effect_id [RENAMED from idempotency_key], request_digest [ADDED], attempt_no
+  action_state, outcome_basis                      # TRANSPORT | RECONCILE | COMPENSATION | DECLARED | NONE
+  capability_profile_digest [ADDED]                # CP1..CP8 in force for this call
+  status, latency_ms, retry_count
+  input_cid, output_cid, input_digest, output_digest
+  policy_decision, policy_version
+  sensitivity_class, redaction_applied, provenance_ref
 ```
 
-Exhausting any budget transitions the execution to `ABORTED` with the exhausted budget named.
-Budget exhaustion is a **normal, expected, reported outcome**, not an error — the harness counts
-it as a distinct failure class (`FM-02`).
+Payload separation is retained from 0.1.0: digests in the envelope, payloads in a
+sensitivity-classed content-addressed store. The tested property stands — **delete the CAS and
+the system still functions**, with payload-dependent components degrading to `INDETERMINATE`.
 
-### K.2 Rate limiting
+### H.5 Experiment entities
 
-- **Local token bucket first.** Per `(provider, model, credential)`, enforced *before* dispatch.
-  Never discover a limit by being rejected.
-- **Reconcile from response headers.** Parse remaining/reset/limit headers; treat the local
-  bucket as an estimate that the authoritative headers correct. `ASSERTED_UNVERIFIED`: specific
-  header names per provider must be read from the live response, not hard-coded from docs
-  (project rule: do not hard-code provider limits).
-- **On 429: no retry against the same bucket until the reset.** A 429 retry is the mechanism by
-  which one rate limit becomes an outage (`FM-03`).
-- **Two-level circuit breaker.** Per-provider (open on sustained 429/5xx) and global (open on
-  aggregate error rate). Open breaker → degradation ladder (§S).
+Exactly as the pivot spec defines them.
 
-### K.3 Runaway-loop detection — three independent detectors
+```
+Experiment   agent_version, environment_version, factors[], constraints[], seed,
+             repetitions, budget, oracle_ids[], expected_invariants[],
+             hypothesis_family [ADDED — fixed before the run, for FDR]
 
-A loop is not one thing. Three orthogonal detectors, all deterministic, all pure functions over
-the ledger:
+Factor       id, dimension, levels[], kind = FAULT|CONFIG|CONTEXT|TOOL|POLICY|MODEL
 
-| Detector | Signal | Threshold |
-|---|---|---|
-| `D-LOOP-REPEAT` | Same `(tool_name, canonical_args_digest)` dispatched ≥ N times within one execution | N configurable, default 3 |
-| `D-LOOP-NOPROGRESS` | `state_fingerprint` (digest of the agent's accumulated task state) unchanged across M consecutive steps, while actions were dispatched | M default 4 |
-| `D-LOOP-OSCILLATE` | Cycle in the action→state-transition sequence: A→B→A→B with period ≤ P | P default 2, ≥ 2 cycles |
+Trial        experiment_id, factor_assignment, seed, initial_state_digest,
+             outcome, invariant_results[], trace_digest
 
-`DESIGN_DECISION`: three detectors because the failure modes are genuinely different. Repetition
-catches a stuck tool. No-progress catches a model that is "working" but achieving nothing.
-Oscillation catches two subsystems fighting. A single "loop detector" misses two of the three.
+Failure      failure_id, invariant_id, fingerprint, factor_assignment,
+             minimized_assignment, minimized_trace, evidence_refs[],
+             reduction_steps[], regression_artifact_id,
+             minimality_confidence [ADDED], fingerprint_stability [ADDED]
+```
 
-`ASSUMPTION` (owner: architect; invalidation: a legitimate task requires > 3 identical calls):
-identical repeated calls indicate a fault rather than legitimate work. Batch or polling
-workloads violate this. Mitigation: exempt tools may declare `polling=true`, which swaps
-`D-LOOP-REPEAT` for a rate-based variant. Do not let the exemption become the default.
+`hypothesis_family` is added because FDR control is defeated by post-hoc family redefinition
+(`INTERACTION_MODEL` C5.3). Putting it in the immutable manifest is the only way the control
+holds.
 
 ---
 
-## L. Evidence representation
+## I. Action state machine
 
-### L.1 The evidence record
+States are those of `KNOWLEDGE_GRAPH.execution_state_machine`. Terminology corrected: the
+outcome vocabulary is `APPLIED` / `NOT_APPLIED` / `INDETERMINATE`, matching CP6.
+
+```
+  PLANNED ──deny/budget/schema/identity-violation──▶ ABORTED (terminal, reason enum)
+     │ authorize (deterministic: policy, budget, schema, effect_id)
+     ▼
+  AUTHORIZED ──dispatch──▶ DISPATCHED
+                               │
+        ┌──────────────────────┼──────────────────────┐
+     2xx│                4xx/5xx│               timeout│/reset
+        ▼                      ▼                      ▼
+  ACKNOWLEDGED          VERIFIED_FAILURE         UNKNOWN_OUTCOME
+  (tool CLAIMS success;  (only when the          (INDETERMINATE.
+   outcome_basis=         authoritative source    MAY BE TERMINAL.)
+   TRANSPORT. NOT proof)  confirms NOT_APPLIED)        │
+        │                                              │ retry legality = §J lookup
+        │ reconcile (CP3/CP5)                          │
+        ▼                                     ┌────────┴────────┐
+  VERIFIED_SUCCESS                       RETRY_SAFE         NEVER_RETRY
+  (outcome_basis=RECONCILE)              → DISPATCHED       → ESCALATE
+                                                              (stays INDETERMINATE)
+  VERIFIED_FAILURE ──compensate (depth 1)──▶ COMPENSATED
+```
+
+### I.1 The reconciliation trap — retained and generalised
+
+`FACT`: a reconciliation read against a non-authoritative source (`CP3 = REPLICA`) under
+`CP4 = EVENTUAL` can report `NOT_APPLIED` for an effect that was applied. Concluding
+`VERIFIED_FAILURE` and retrying produces the duplicate the mechanism exists to prevent.
+
+| CP3 | CP4 | Reconcile returns "absent" ⇒ |
+|---|---|---|
+| `AUTHORITATIVE` | `STRONG` | `NOT_APPLIED` |
+| `AUTHORITATIVE` | `BOUNDED`, elapsed ≥ bound | `NOT_APPLIED` |
+| `AUTHORITATIVE` | `BOUNDED`, elapsed < bound | `INDETERMINATE` — re-probe after bound |
+| `AUTHORITATIVE` | `EVENTUAL` | **`INDETERMINATE` — never `NOT_APPLIED` on absence alone** |
+| `REPLICA` | any | **`INDETERMINATE`** |
+| `NONE` | any | **`INDETERMINATE`** |
+| any | `UNDECLARED` | **`INDETERMINATE`** (the default) |
+
+`UNDECLARED` is the default so that the safe configuration is the lazy one.
+
+**In the pivoted design this table is not just a safety mechanism — it is a factor.** F3
+(`tool_consistency`) and the CP3 level are varied deliberately, and INV-1 (no duplicate side
+effect) is the oracle that catches the engine getting it wrong. The mechanism is under test by
+the experiment engine rather than assumed correct.
+
+---
+
+## J. Retry legality by semantic effect class — pivot correction 6
+
+HTTP verb and `read_only` are **removed** as criteria. The lookup is over
+`(CP2 effect class, CP1 identity stability, CP3 reconciliation source)`.
+
+| CP2 effect class | CP1 | CP3 | Verdict |
+|---|---|---|---|
+| `PURE_READ` | any | any | `RETRY_SAFE` |
+| `IDEMPOTENT_READ` | any | any | `RETRY_SAFE` |
+| `IDEMPOTENT_WRITE` | `STABLE` / `DERIVABLE` | any | `RETRY_SAFE` (same `effect_id`) |
+| `IDEMPOTENT_WRITE` | `UNSTABLE` | any | **`RECONCILE_FIRST`** — idempotency is meaningless without a stable identity |
+| `NON_IDEMPOTENT_WRITE` | any | `AUTHORITATIVE` | `RECONCILE_THEN_DECIDE` (per §I.1) |
+| `NON_IDEMPOTENT_WRITE` | any | `REPLICA` / `NONE` | **`NEVER_RETRY` → `INDETERMINATE`** |
+| `UNKNOWN` | any | any | **`NEVER_RETRY` → `INDETERMINATE`** |
+
+The `UNKNOWN` row exists because pivot correction 7 requires it: for a system whose adapter does
+not supply the capability, the honest output is `INDETERMINATE` / `UNVERIFIABLE`.
+
+Each CP property is verified by a contract test. **A declared property that fails its contract
+test fails the build.** A tool cannot lie about itself in a way that survives CI — and when we
+*want* it to lie (to test what breaks), that is a declared factor level, not a defect.
+
+---
+
+## L. Evidence model — pivot correction 3
+
+`FACT` (logical): a deterministic parse of an untrusted response is a deterministic derivation
+**about what the source reported**, not a fact about the world. The 0.1.0 label lattice equated
+derivation method with epistemic truth. Corrected to **five orthogonal fields plus a claim
+scope**.
 
 ```
 Evidence
-  evidence_id        uuid
-  claim_id           uuid                 # the statement this supports or refutes
-  label              enum                 # FACT | OBSERVATION | CORRELATION |
-                                          # HYPOTHESIS | COUNTERFACTUAL_EVIDENCE | UNKNOWN
-  polarity           enum                 # SUPPORTS | REFUTES | INCONCLUSIVE
-  extraction_method  enum                 # DETERMINISTIC_RULE | STATISTICAL_TEST |
-                                          # REPLAY_EXPERIMENT | HUMAN_ASSERTION | LLM_SYNTHESIS
-  producer_id        str                  # detector or experiment id
-  producer_version   str                  # semver. REQUIRED.
-  source_refs        [ledger_ref]         # immutable (execution_id, seq) pairs. REQUIRED, non-empty.
-  params             json                 # thresholds/config in effect. REQUIRED.
-  computed_at        timestamptz
-  reproducible       bool                 # can this be recomputed from source_refs alone?
+  claim_type         OBSERVED_EVENT | DETERMINISTIC_DERIVATION | STATISTICAL_ASSOCIATION
+                     | CONTROLLED_INTERVENTION_RESULT | HYPOTHESIS | INDETERMINATE
+  claim_scope        WHAT_THE_SOURCE_REPORTED | ENVIRONMENT_STATE | EXPERIMENT_RESULT
+                     | PRODUCTION_BEHAVIOR        ← NEVER ASSERTABLE BY THIS SYSTEM
+  observation_source LEDGER | ENVIRONMENT_GROUND_TRUTH | TOOL_RESPONSE | MODEL_OUTPUT
+                     | HUMAN | EXTERNAL_SYSTEM
+  provenance         source_refs[] + trust_class ∈ {TRUSTED_INTERNAL, UNTRUSTED_EXTERNAL}
+  assurance_level    ENVIRONMENT_VERIFIED | ADAPTER_VERIFIED | SELF_REPORTED | UNVERIFIED
+  derivation_method  DIRECT_OBSERVATION | DETERMINISTIC_RULE | STATISTICAL_TEST
+                     | CONTROLLED_EXPERIMENT | REDUCTION | LLM_SYNTHESIS
+  producer_id, producer_version, params, source_refs[]   # all REQUIRED
 ```
 
-### L.2 The label lattice — enforced at write time
+### L.1 The rules that actually bind
 
-`DESIGN_DECISION`: the permissible label is a **function of the extraction method**. Not a
-choice. Enforced by a database check constraint and a schema validator, so violating it is not
-possible without a migration and a code review.
+1. **`claim_scope = PRODUCTION_BEHAVIOR` is unconstructible.** No capability produces it. This is
+   pivot correction 7 made structural.
+2. **A `TOOL_RESPONSE` source with `SELF_REPORTED` assurance can only carry
+   `claim_scope = WHAT_THE_SOURCE_REPORTED`**, regardless of how deterministic the parse was.
+   Deterministic derivation over an untrusted payload is not a world fact.
+3. **`claim_scope = ENVIRONMENT_STATE` requires `observation_source = ENVIRONMENT_GROUND_TRUTH`
+   and `assurance_level = ENVIRONMENT_VERIFIED`.** This is why the ground-truth effect log
+   exists and why `ZONE S` must not reach it.
+4. **`CONTROLLED_INTERVENTION_RESULT` requires `derivation_method = CONTROLLED_EXPERIMENT`, a
+   Phase-3 design, `n`, an interval, and `divergence_rate`.** Screening data cannot be relabelled
+   as an intervention — the `InterventionCapability` is held only by the Phase-3 runner.
+5. **`derivation_method = LLM_SYNTHESIS` permits only `claim_type ∈ {HYPOTHESIS,
+   INDETERMINATE}`.** The narrator holds no capability, so it cannot construct anything else.
+6. **Absence is not evidence.** There is no "nothing found" record. A claim with no support
+   renders `INDETERMINATE` plus a coverage manifest naming what ran, at which version, over which
+   range — which distinguishes *we looked and found nothing* from *we did not look*.
 
-| `extraction_method` | Permitted labels | Forbidden |
+### L.2 Causal vocabulary — pivot correction 4
+
+| Permitted | Type | Requires |
 |---|---|---|
-| `DETERMINISTIC_RULE` | `FACT`, `OBSERVATION`, `UNKNOWN` | everything else |
-| `STATISTICAL_TEST` | `CORRELATION`, `OBSERVATION`, `UNKNOWN` | **`FACT`**, `COUNTERFACTUAL_EVIDENCE` |
-| `REPLAY_EXPERIMENT` | `COUNTERFACTUAL_EVIDENCE`, `OBSERVATION`, `UNKNOWN` | `FACT` |
-| `HUMAN_ASSERTION` | `HYPOTHESIS`, `OBSERVATION`, `UNKNOWN` | `FACT` |
-| `LLM_SYNTHESIS` | `HYPOTHESIS`, `UNKNOWN` | **`FACT`**, `CORRELATION`, `COUNTERFACTUAL_EVIDENCE`, `OBSERVATION` |
+| "X preceded Y in n of m trials" | `STATISTICAL_ASSOCIATION` | n, m |
+| "Version change V coincided with a rate shift" | `STATISTICAL_ASSOCIATION` | **observational.** Not a natural experiment. |
+| "Toggling factor F, same fixture and seed, changed the violation rate from a/n to b/n, Δ [CI], divergence rate v" | `CONTROLLED_INTERVENTION_RESULT` | Phase-3 design, all four numbers |
 
-Consequences worth stating plainly:
-- **A statistical test can never produce a `FACT`.** p < 0.05 is a correlation with a number on it.
-- **A replay experiment can never produce a `FACT`.** It produces counterfactual evidence bounded
-  by the replay's fidelity contract (§N).
-- **An LLM can only ever produce a `HYPOTHESIS`.** It cannot even produce an `OBSERVATION`,
-  because an observation implies faithful reading of a source, and we have no mechanism that
-  verifies faithfulness. If we want the LLM's reading of a payload as an observation, a
-  deterministic extractor must produce it instead.
-
-### L.3 Absence of evidence
-
-`KNOWLEDGE_GRAPH.causal_evidence_rules` states: *"absence of evidence must not be represented as
-evidence of absence."* Enforced structurally: there is no "no evidence found" evidence record.
-A claim with zero supporting records is rendered as `UNKNOWN` with `coverage` metadata naming
-which detectors ran, at which versions, over which ledger range. That metadata is what lets a
-reader distinguish *"we looked and found nothing"* from *"we did not look"* — and those are
-different states that a naive implementation renders identically.
+**Banned in all output:** *root cause*, *caused by*, *due to*, *because of*, *natural
+experiment*, *randomized*. Removed from the vocabulary because assignment in a covering array is
+**systematic**, not random; where we do randomise, we say so and show the randomisation.
 
 ---
 
-## M. Causal hypotheses without pretending correlation is causation
+## N. Replay modes — pivot correction 9
 
-### M.1 The honest position
-
-`FACT`: from observational traces alone, causal identification is not possible here. There is no
-randomisation of the treatment, no instrument, no natural experiment, and the confounders
-(deployment version, task difficulty, time of day, provider load, prompt content) are
-unmeasured and numerous.
-
-`FACT`: what we *do* have is randomisation over **injected faults**, because we assign the
-treatment ourselves, per trial, from a seeded RNG.
-
-`DESIGN_DECISION`: the system makes exactly two kinds of causal-adjacent statement, and they are
-typographically and structurally distinct in every output.
-
-| Statement type | Source | Permitted phrasing | Forbidden phrasing |
+| | `EXACT_REPLAY` | `CONTROLLED_REPLAY` | `LIVE_EXECUTION` |
 |---|---|---|---|
-| **Association** | Observational ledger analysis | "X preceded Y in n of m executions"; "X and Y co-occur at rate r" | "X caused Y"; "root cause"; "due to"; "because of" |
-| **Intervention** | Paired replay trials with the fault toggled | "With F injected, failure rate was a/n; with F removed under otherwise identical conditions, b/n. Difference d [CI]. Divergence rate v." | "F is the root cause"; any statement omitting n, CI, or divergence rate |
+| Definition | Recorded inputs and outputs replayed | Frozen deterministic fixtures and substrate | Fresh external calls |
+| External effects | **None.** Egress guard; violation fails the run. | **None.** Same guard. | Real |
+| Model | Served from ledger | Seeded deterministic stub, or ledger | Live, stochastic |
+| Factors variable | No | **Yes — this is the point** | Yes, confounded |
+| Deterministic | Yes, for the analysis path | Yes, given seed + fixture digest | **No. Not replay.** |
+| Supports | "Our analysis produces X over this trace" | "Under this fixture and seed, this assignment yields k/n" | "On this date, n runs gave this distribution" |
+| Never called | — | — | **"replay"** |
 
-**There is no third kind.** The phrase "root cause" does not appear in any system output. A
-lint test over output templates enforces this, because the word will otherwise reappear the
-first time someone writes a summary.
+### N.1 Trajectory divergence
 
-### M.2 Candidate generation — deterministic, not learned
+`CONTROLLED_REPLAY` serves recorded responses. A changed factor changes a decision. Subsequent
+recorded responses are then **off-policy** — recorded against a different request in a different
+state. Continuing produces a plausible trajectory that never occurred, with **no error signal**.
 
-Hypothesis candidates are generated by graph traversal, not by a model.
+- Compare `request_digest` at every replay decision point.
+- Match ⇒ serve; mismatch ⇒ **diverged**.
+- Seeded stub available ⇒ continue with `post_divergence_fidelity = STUB` and
+  `divergence_from_seq = s`.
+- Recorded responses only ⇒ **halt at `s`**, report `TRUNCATED_AT_DIVERGENCE`. Do not fabricate.
+- `divergence_rate` is a **required field** on every `CONTROLLED_INTERVENTION_RESULT`.
+- Divergent trials are **excluded from paired analyses and counted** — a broken pair is not a
+  pair (`INTERACTION_MODEL` C5.2).
+- `divergence_rate > 0.5` ⇒ the result reports `INDETERMINATE`, not a finding.
 
-1. **Seed**: the anomaly(ies) a detector fired on. Deterministic.
-2. **Backward reachability**: traverse the execution graph backwards along `causal_parent`,
-   `data_dependency` (output CID of A appears in input of B), and `resource_contention`
-   (same `resource_id`) edges, bounded by depth and by `seq` precedence.
-3. **Change-point join**: intersect the reachable set with `deployment` change events
-   (model version, tool schema version, policy version) within the window.
-   `KNOWLEDGE_GRAPH` models `deployment CHANGES model/schema/policy` — **this is the highest-value
-   edge in the graph and it should be treated as the primary spine of hypothesis generation**,
-   because a deployment is the closest thing to a naturally-occurring intervention in
-   observational data.
-4. **Recurrence join**: count prior executions where the same candidate pattern preceded the same
-   anomaly class.
-5. **Dedupe and rank.**
-
-### M.3 Ranking — an ordinal rubric, not a probability
-
-`DESIGN_DECISION`: the rank is a transparent sum over named, individually-inspectable criteria.
-It is **not** a probability and is never presented as one.
-
-| Criterion | Points | Justification |
-|---|---|---|
-| Logical precedence established (`seq` / causal edge — **not** wall clock) | +1 | Necessary, per the project's own rules. Never sufficient. |
-| Direct data dependency (candidate's output CID appears in the failing input) | +2 | Mechanistic linkage, not mere co-occurrence. |
-| Change-point alignment (a deployment changed a relevant version in-window) | +2 | Nearest available natural experiment. |
-| Historical recurrence (≥ 3 prior co-occurrences) | +1 | Weak. Repeated correlation is still correlation. |
-| Counterfactual replay shows effect | +4 | The only genuine intervention. Dominates. |
-| Counterfactual replay shows **no** effect | −4 | **Refutation must be able to sink a hypothesis.** |
-| Alternative candidate explains the same evidence equally well | −1 per alternative | Penalise non-discrimination explicitly. |
-
-**Why not a learned model or a probability?** Because we have no labelled ground truth for "the
-actual cause" and never will at this scale. A number produced by a model with no ground truth is
-a false precision that will be quoted in a review as though it meant something. An ordinal sum
-over named criteria is auditable: a reader can disagree with the +2 and recompute.
-
-`ASSUMPTION` (owner: architect; invalidation: two criteria are shown to be near-perfectly
-correlated across ≥ 100 incidents): the criteria are sufficiently independent that summing them
-is meaningful. If precedence and data-dependency turn out to be the same signal in practice, the
-weights are double-counting and must be collapsed.
-
-### M.4 Every hypothesis carries its own falsifier
-
-`DESIGN_DECISION`: a hypothesis record is invalid without a `falsification_test` field
-specifying the concrete replay configuration that would refute it — mode, fault toggled, n
-trials, and the outcome that would count as refutation. Stated before the test is run.
-
-This does three things: it forces the hypothesis to be about a *mechanism* rather than a vibe;
-it prevents post-hoc reinterpretation of whatever the replay returns; and it makes "this
-hypothesis is untestable with our current harness" an explicit, visible outcome rather than a
-silent one.
-
-### M.5 The permitted refusal
-
-`"INSUFFICIENT_EVIDENCE"` is a first-class, frequently-correct output. The hypothesis ranker is
-required to emit it when the top candidate's score is below a threshold or when the top two
-candidates are within a configured margin. A ranked list that always has a winner is a ranked
-list that is lying on hard cases — and hard cases are the only ones anyone needs this for.
+**Any trajectory divergence invalidates downstream counterfactual interpretation unless
+explicitly handled by one of the two branches above.** That sentence is the contract.
 
 ---
 
-## N. Replay modes — three different contracts
+## Build gates — six, each with an exit test
 
-`FACT`: project rule 9 — never claim live LLM replay is deterministic. The three modes exist to
-make the *strength of claim* explicit, so the word "replay" cannot smuggle a determinism
-assumption.
-
-| | `EXACT_REPLAY` | `CONTROLLED_REPLAY` | `LIVE_REEXECUTION` |
-|---|---|---|---|
-| **Model calls** | Served from ledger. Zero inference. | Served from ledger, or a seeded deterministic stub. Zero remote inference. | Real. Current model. |
-| **Tool calls** | Served from ledger. | Executed against **frozen fixtures** — a synthetic env snapshot restored from a digest. | Real tools. |
-| **External I/O** | **Zero.** Asserted by an egress guard; violation fails the replay. | **Zero.** Same guard. | Real. |
-| **Deterministic?** | Yes, bit-for-bit, for the analysis code path. | Yes, given the same seed and fixture digest. | **No. Never claimed.** |
-| **Can inputs be changed?** | No. It is a re-projection of what happened. | **Yes — this is the point.** Toggle a fault, change a tool response, change a policy version. | Yes, but confounded with model drift. |
-| **Permitted claim** | "Our detectors/graph/analysis produce X over this trace." | "Under this fixture and seed, toggling F changed the outcome from A to B in k/n trials, with divergence rate v." | "In n live runs today, the outcome distribution was D. Not comparable to any other date." |
-| **Forbidden claim** | "The agent would do this again." | "F causes this failure in general." | "This reproduces the incident." |
-| **Cost** | Zero inference. | Zero remote inference (stub) or bounded (recorded). | Full. Budget-governed. See §S. |
-
-### N.1 Trajectory divergence — the flaw most replay systems hide
-
-**This is the second-most-important correctness issue in the design.**
-
-`CONTROLLED_REPLAY` works by serving recorded responses. But a counterfactual *changes* the
-inputs. The moment the change alters a decision the agent makes, every subsequent recorded
-response is **off-policy**: it was recorded in response to a different request, in a different
-state. Continuing to serve it produces a trajectory that never occurred and could never occur.
-
-Naively, the replay looks like it succeeded. The output is plausible. It is fiction.
-
-`DESIGN_DECISION` — the **divergence detector**, mandatory:
-
-- At every replay decision point, compute `request_digest` and compare with the recorded one.
-- **Match** → serve the recorded response. Replay remains valid.
-- **Mismatch** → the trajectory has diverged. Then:
-  - if a seeded deterministic stub model is in use, continue and mark
-    `divergence_from_seq = s`, `post_divergence_fidelity = STUB`;
-  - if only recorded responses are available, **halt the replay at `s`** and report
-    `TRUNCATED_AT_DIVERGENCE`. Do not fabricate.
-- Every `COUNTERFACTUAL_EVIDENCE` record carries `divergence_rate` = fraction of trials that
-  diverged before reaching the outcome under test.
-- **A counterfactual with a high divergence rate is reported as weak or invalid, not as a
-  result.** Threshold configured, default: > 0.5 ⇒ `INCONCLUSIVE`.
-
-This is uncomfortable because it means many interesting counterfactuals will return
-`INCONCLUSIVE`. That is the correct answer, and a system that returns a confident answer there
-is producing exactly the fake root-cause analysis this project exists to replace.
-
-### N.2 What `CONTROLLED_REPLAY` requires of the environment
-
-Fixtures are not optional detail. `CONTROLLED_REPLAY` requires the synthetic environment to
-support snapshot-restore by digest, so every trial starts from a byte-identical state. Without
-it, paired trials are not paired and the counterfactual is confounded by state carry-over
-(`FM-16`). This is a Gate 1 requirement, not a Gate 5 one — the environment must be built
-snapshot-capable from the start, because retrofitting it is a rewrite.
+`DESIGN_DECISION`: eight gates became six. Gate 0.5 is this review. Gates 1–6 follow.
 
 ---
 
-## S. Operating without an LLM provider
+### GATE 1 — Environment, Ledger, Adapter
 
-Full treatment in `QUOTA_AND_COST_MODEL.md` §S. Architectural summary:
-
-**`FACT` (by construction, and tested at criterion S4):** every stage of
-`observe → verify → analyze → hypothesize → replay → decide` is deterministic. The LLM appears
-exactly once, at the end, as narration over a bundle that is already complete.
-
-The degradation ladder:
-
-| Level | Condition | Behaviour |
-|---|---|---|
-| L0 | Primary provider healthy | Up to 2 calls per incident for narration. |
-| L1 | Primary rate-limited or degraded | Fallback provider, **with a recorded `provider_switch` event** — never silent. Behavioural guarantees differ; output is marked. |
-| L2 | All remote providers unavailable | Local small model if configured, else skip to L3. |
-| L3 | No inference at all | **Template-rendered structured report.** All evidence, all hypotheses, all rankings, all counterfactuals, all state adjudications present. Only the prose paragraph is absent. |
-
-**The system's value proposition must survive at L3.** If a stakeholder demo is not compelling
-at L3, the architecture has an LLM dependency it has not admitted to, and that is a finding, not
-a polish item.
+- **Objective.** A trial can be executed, observed, and **byte-reproduced**.
+- **Scope.** Canonical event ledger (append-only, `seq`-ordered); versioned fixture store with
+  snapshot/restore **by digest**; execution adapter holding the sole `DispatchCapability`;
+  five synthetic services with **declarable CP1–CP8 profiles**; ground-truth effect log
+  unreachable from `ZONE S`; deterministic stub model adapter.
+- **Invariants.** INV-9 (determinism). INV-8 (no `INDETERMINATE` promotion). Ledger append-only.
+- **Exit tests.** 1000 trials run twice ⇒ identical `trace_digest` for every pair. Fixture
+  restore ⇒ digest equals the declared baseline. Agent credential **denied** on the ground-truth
+  log. Narrator module, given a bundle and no capability, fails to construct an `ObservedEvent`.
+  Full suite passes with zero LLM availability.
+- **Why not premature.** Everything downstream — reduction, fingerprinting, regression artifacts
+  — is invalid without byte-reproducibility. Snapshot-restore-by-digest cannot be retrofitted;
+  adding it later is a rewrite of every component that touched state.
+- **Deferred.** Oracles beyond INV-8/9. Any planner. Any reduction. All of Neo4j, ClickHouse,
+  Qdrant, Temporal, OPA-as-process, MCP, frontend.
 
 ---
 
-## T. What makes this fail at enterprise scale
+### GATE 2 — Oracles, Fault Injector, Runner
 
-Honest list. Each is a real limit of *this* design, not a generic scaling homily.
+- **Objective.** A single trial under a named factor assignment yields a versioned oracle verdict.
+- **Scope.** Oracle engine holding the sole `OracleCapability`; INV-1..INV-9; fault injector
+  (seeded, per-trial schedulable); single-trial runner; effect identity (§H.3); retry legality
+  table (§J); reconciliation matrix (§I.1).
+- **Invariants.** All of INV-1..INV-9 evaluable. Every oracle returns `INDETERMINATE` rather than
+  defaulting to `HOLDS` when it cannot evaluate.
+- **Exit tests.** Oracle meta-suite: known-pass, known-fail, **adversarial near-miss**,
+  degenerate input. An oracle that crashes or defaults to `HOLDS` on degenerate input **fails
+  the build**. Effect-identity contract tests: serialization change ⇒ same `effect_id`; semantic
+  change without a declared new step ⇒ `ABORTED / EFFECT_IDENTITY_VIOLATION`. Replica-lag fault
+  ⇒ `INDETERMINATE`, never `NOT_APPLIED`. Server-side request count equals adapter `attempt_no`.
+- **Why not premature.** A planner without trustworthy oracles generates volume, not signal. An
+  oracle that silently never fires is indistinguishable from a reliable system — this gate exists
+  to make that impossible before any large run.
+- **Deferred.** Covering arrays. Reduction. Interaction analysis. `OQ-05` (concurrency scope)
+  must be resolved *within* this gate before F10 is implemented.
 
-| # | Failure at scale | Why | Earliest signal | What would have to change |
+---
+
+### GATE 3 — Experiment Planner and Coverage
+
+- **Objective.** A bounded, constraint-aware plan over the factor space, with honest coverage
+  accounting.
+- **Scope.** Factor model (C1); constraint-aware covering-array generation at t = 2;
+  state-machine sequence generation; metamorphic relations MR-1..MR-6; budget-aware scheduler;
+  coverage report (C9) including the **unexplored** space.
+- **Invariants.** Coverage report states `infeasible_fraction` and `constraints_applied`.
+  Screening and adaptive trials reported **separately**. Every reported number carries n.
+- **Exit tests.** Generated array verifiably covers every feasible pair (checked by an independent
+  verifier, not the generator). **S2:** the engine finds ≥ 1 two-factor interaction failure whose
+  single-factor arms both pass at n ≥ 50. Seeded-bug detection: bugs authored by someone who did
+  not write the factor model are detected at a measured rate (`OQ-08`).
+- **Why not premature.** The cost arithmetic (`INTERACTION_MODEL` C2.1) shows screening is minutes
+  and reduction is hours. Planning before reduction means failures arrive faster than they can be
+  processed — which is the correct order, because the reducer's budget must be sized from real
+  failure volume.
+- **Deferred.** t = 3 (until a 3-way failure is found that pairwise missed). Adaptive search
+  beyond Hamming-distance expansion. All learned search.
+
+---
+
+### GATE 4 — Failure Reduction and Fingerprinting
+
+- **Objective.** A failure reduces to a stable, minimal-with-confidence reproducer.
+- **Scope.** ddmin with `r_confirm` repetition confirmation; **fingerprint-aware acceptance**;
+  non-monotonicity detection (`REDUCTION_UNSTABLE`); hierarchical reduction order; fingerprint
+  composition and clustering with `fingerprint_stability`; per-failure reduction budget.
+- **Invariants.** A reduction is accepted only if the failure retains the **same fingerprint**.
+  `minimality_confidence` is reported; "1-minimal" is never claimed. Budget exhaustion yields a
+  **partially reduced** artifact labelled as such.
+- **Exit tests.** Seeded **non-monotone** fixture ⇒ reducer emits `REDUCTION_UNSTABLE`, not a
+  confident minimum (**S3**). Seeded fingerprint-collision fixture ⇒ cluster flagged `UNSTABLE`
+  via within-bucket variance. Reduction of a known 3-factor interaction recovers exactly those
+  three factors in ≥ x% of independent runs (x measured, not asserted).
+- **Why not premature.** Reduction is the cost centre (13–27 h for 50 failures). Building it
+  before the planner produces real failure volume would size its budget from imagination.
+- **Deferred.** Automated root-cause attribution (does not exist and will not be built). Cross-
+  failure clustering beyond fingerprint identity.
+
+---
+
+### GATE 5 — Interaction Estimation and Regression Compilation
+
+- **Objective.** A minimized failure becomes (a) an interaction estimate with an interval and
+  (b) a re-executable regression artifact.
+- **Scope.** Phase-3 designed factorials over surviving factors; contingency + logistic
+  interaction terms; BH-FDR over the **pre-declared** `hypothesis_family`; McNemar only where
+  pairing genuinely holds; regression compiler per `REGRESSION_ARTIFACT_SPEC.md`.
+- **Invariants.** Interaction estimates derive **only** from Phase-3 data — the
+  `InterventionCapability` makes covering-array data structurally ineligible. Every estimate
+  carries raw p, adjusted p, q, family size and family identity. Every regression artifact
+  carries a measured `reproduction_rate` with an interval.
+- **Exit tests.** **S4:** an artifact re-executes from the artifact alone on a clean checkout and
+  reproduces at its recorded rate within its recorded interval. Null-factor control: a factor
+  known to have no effect must **not** survive FDR across ≥ 20 independent screens. A
+  0.4-reproduction-rate artifact is executed r times against a threshold, never once.
+- **Why not premature.** Estimation requires minimized factor sets (Gate 4) — running factorials
+  over 14 factors is 7 million cells. Reduction is what makes estimation affordable.
+- **Deferred.** Bayesian optimization, learned surrogates, causal-graph inference. All require a
+  measured trigger showing the transparent method insufficient.
+
+---
+
+### GATE 6 — Model Canary Boundary and Reporting
+
+- **Objective.** The model becomes a *system under test* on a fixed, budgeted canary boundary,
+  and the whole run is reportable with its limits.
+- **Scope.** L-LOC and L-REM canary suites (fixed, declared, separately reported); provider
+  adapter with token-metered local budget and header reconciliation; optional narrator (pure
+  function, no capabilities); MCP adapter behind the internal tool protocol; export of coverage +
+  limitations + artifacts.
+- **Invariants.** L-DET / L-LOC / L-REM are **never** pooled into one statistic. No remote call
+  is required by any deterministic component. `provider_switch` is always recorded, never silent.
+- **Exit tests.** **S5:** full pipeline with provider egress blocked produces byte-identical
+  structured output. Canary budget enforced by a counter; exceeding it aborts with a partial
+  report rather than making an extra call. Report contains the unexplored space and the
+  external-validity limitation verbatim.
+- **Why not premature.** The model is the most expensive and least reproducible factor. Bringing
+  it in last means every other component has been validated deterministically first, so a canary
+  discrepancy localises to the model rather than to the harness.
+- **Deferred.** A2A, multi-agent swarms, any frontend beyond a static export, real-credential
+  integration.
+
+---
+
+## T. What breaks at enterprise scale
+
+| # | Limit | Why | Earliest signal | What would change |
 |---|---|---|---|---|
-| T-1 | **Inline probes double tool latency** | The verification probe sits on the critical path of every side-effecting call. An agent doing 20 writes pays 20 extra round trips. | p95 action latency in the harness. | Async probe with a deferred adjudication queue — which means the agent proceeds under `ACKNOWLEDGED` and the verdict arrives later. That is a *different* and weaker safety property, and the trade must be stated, not slid in. |
-| T-2 | **`resource_id` cardinality** | Unbounded. If it ever becomes a metric dimension, the metrics backend dies. | Metric series count. | Enforced now: `resource_id` is an event attribute only. A lint test forbids it in metric label sets. Cheap to enforce at Gate 1, near-impossible to retrofit. |
-| T-3 | **Ledger write amplification** | Every attempt, probe and state transition is a row. A single execution can emit 200+ events. At 10^4 executions/day that is 2×10^6 rows/day on Postgres. | Ingest lag (`t_recv − t_emit`) p99. | Batch ingest, partition by day, then the ClickHouse trigger in `CHARTER` §F. |
-| T-4 | **Graph explosion on long executions** | `resource_contention` edges are O(n²) in actions touching the same resource. A 500-action execution on one resource is 125k edges. | Graph build time p95. | Edge-type budgets and lazy materialisation before a graph DB. A graph DB does not fix an O(n²) edge definition — it just makes the explosion someone else's storage bill. |
-| T-5 | **CAS payload volume and its retention obligation** | Full prompt/response retention is the largest storage cost *and* the largest privacy liability simultaneously. | CAS bytes/day; retention policy age. | Sampling + class-based retention + the "delete the CAS, system still works" property (§H.4). |
-| T-6 | **Replay storage** | Replay needs payloads. Payload retention is T-5. Replay fidelity and privacy are in **direct tension** and this cannot be engineered away — only decided. | Replayable-fraction of incidents older than the retention window. | A stated policy: which incident classes keep payloads, for how long, under whose approval. Currently `OQ-05`. |
-| T-7 | **Control-plane read access to enterprise state** | Probes require read access to the resources tools write. Aggregated across an enterprise this is an extraordinarily privileged account. | — (design-time) | Delegate probes to tool owners (probe-as-a-service), or accept the privilege and protect it accordingly. `OQ-02`. |
-| T-8 | **Single-writer `seq`** | H.2's ordering guarantee assumes one writer per execution. Horizontal scaling breaks it. | Concurrent-writer errors. | Lamport clocks, designed before scaling, not after. |
-| T-9 | **Policy engine as a synchronous SPOF** | Every action blocks on it. | Policy decision latency p99; breaker trips. | Local decision cache with bounded staleness — and a bounded-staleness *authorisation* decision is a security trade-off requiring explicit sign-off, not a performance tweak. |
-| T-10 | **Reliability eval cost grows multiplicatively** | k × perturbations × fault-intensities × tasks. Exceeds any inference budget almost immediately (see `QUOTA_AND_COST_MODEL` §3). | Trials/day achieved vs. required. | Deterministic model substrate for the bulk of trials, remote model on a sampled subset, with results reported **per substrate** and never pooled. |
-| T-11 | **Detector version drift across a long ledger** | Evidence carries `producer_version`, so a two-year-old incident was analysed by a detector that no longer exists. Re-analysis changes historical conclusions. | Version spread in the evidence table. | Detector versions are immutable and retained; re-analysis creates *new* evidence rows and never mutates old ones. Comparisons across versions must be explicitly opted into. |
-| T-12 | **Every claim is scoped to a synthetic environment** | The deepest limit. Fault distributions, consistency models, and API behaviours in the synthetic env were chosen by us. Reliability measured against our own assumptions is circular. | — (structural) | Nothing, within this project. The honest mitigation is the production-claim paragraph in `PROJECT_CHARTER.md` and never weakening it. |
+| T-1 | **Reduction cost dominates** | O(n²)·r per failure; 50 failures ≈ 13–27 h | Reduction hours / screening hours | Parallel reduction across failures; per-failure budget caps producing partial artifacts |
+| T-2 | **Factor space grows with v²** | Pairwise N scales with the two largest level counts; real tool surfaces mean large v | Generated N vs. budget | Hierarchical factor models; per-adapter sub-experiments |
+| T-3 | **Fixture storage** | One snapshot per trial × 10⁵ trials | Fixture store bytes/day | Content-addressed dedup; states are similar, so this may work — measure before assuming |
+| T-4 | **Determinism rots silently** | One unseeded RNG in a dependency, one dict-ordering change, one wall-clock read | INV-9 violation rate | Nothing else — this is why INV-9 is an oracle and not an assumption |
+| T-5 | **Regression suite invalidation** | Artifacts pin `environment_version`; a bump invalidates a large fraction at once | Invalid-artifact fraction per version bump | Explicit invalidation conditions per artifact; scheduled re-validation |
+| T-6 | **Trial wall-clock** | 2 s/trial × 200k trials ≈ 4.6 days serial | Trials/hour | Parallelism — which reintroduces shared-state risk (`EM-12`) and must be isolated per worker |
+| T-7 | **Concurrency factor needs a scheduler** | Deterministic testing of F10 requires controlled interleaving; arbitrary thread scheduling requires a simulator | `OQ-05` | Scope F10 to adapter-controlled interleaving points, or accept a much larger build |
+| T-8 | **Ledger volume** | 200+ events per execution × 10⁵ trials | Ingest lag p99 | Partitioning, then the ClickHouse trigger |
+| T-9 | **Capability-profile maintenance** | Declaring CP1–CP8 for hundreds of real adapters is work nobody will fund | Adapter count vs. profiled count | `UNKNOWN` defaults that route to `INDETERMINATE` — correct, and a smaller product |
+| T-10 | **Single-writer `seq`** | Parallel runners break the ordering guarantee | Concurrent-writer errors | Per-trial writer isolation (natural here), or Lamport clocks |
+| T-11 | **Fault injection must never reach production** | The engine's purpose is breaking things | — (design-time) | Hard environment separation; egress guard as a test, not a convention |
+| T-12 | **The factor model is our own hypothesis** | Coverage is measured against a space we authored | — (structural) | Nothing, within this project. `OQ-08` attacks it; the limitation stands in every report. |

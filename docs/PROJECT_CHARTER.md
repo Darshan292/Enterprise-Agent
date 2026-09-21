@@ -1,303 +1,387 @@
-# PROJECT CHARTER — Agent Reliability & Runtime Assurance
+# PROJECT CHARTER — Agent Reliability Experiment Engine
 
-Status: **GATE 0 — ARCHITECTURE REVIEW. NO IMPLEMENTATION AUTHORIZED.**
-Document version: 0.1.0
-Last updated: 2026-09-21
-
----
-
-## 0. Truth-label discipline
-
-Every substantive statement in this repository's planning documents carries one of these labels.
-The labels are not decoration; downstream documents and code are forbidden from promoting a
-statement to a stronger label without a recorded reason.
-
-| Label | Meaning | Who may assert it |
-|---|---|---|
-| `FACT` | Verifiable by inspection of this system, its code, its recorded data, or a primary source we have actually read. | Deterministic code, or a human who checked the source. |
-| `ASSERTED_UNVERIFIED` | Claimed by an upstream input (bootstrap doc, citation, vendor doc) that nobody on this project has independently verified. | Anyone, on ingest. |
-| `ASSUMPTION` | A stance we chose in order to proceed. Falsifiable. Has an owner and an invalidation trigger. | Architect. |
-| `HYPOTHESIS` | A candidate explanation consistent with the evidence, not established. | Hypothesis generator, human. |
-| `DESIGN_DECISION` | A choice with stated alternatives and consequences. Recorded in an ADR. | Architect, via ADR. |
-| `OPEN_QUESTION` | Unresolved. Blocks or constrains work. Has a resolution method. | Anyone. |
-
-**Hard rule:** no component, LLM or otherwise, may emit `FACT`. `FACT` is produced only by
-deterministic extraction from an immutable ledger record. See `ARCHITECTURE_SURFACE.md` §L.
+Working title: **Agent Failure Laboratory**
+Status: **GATE 0.5 — ARCHITECTURE PIVOT. NO IMPLEMENTATION AUTHORIZED.**
+Document version: 0.2.0 (full rewrite; supersedes 0.1.0)
+Date: 2026-09-21
 
 ---
 
-## 0.1 Citation audit — first adversarial finding
+## 0. What changed and why
 
-`PROJECT_CONTEXT.json` contains a `design_truths` array in which **ten** claims are labelled
-`"type": "FACT"` and attributed to sources dated 2026.
+Version 0.1.0 centred the product on **unknown side-effect adjudication and postcondition
+verification**. That centre is retired.
 
-**Finding:** the project's own first-principles rule is "do not assume the LLM is correct" and
-"do not invent". That rule applies to the project's inputs, not only to its outputs. None of
-those ten citations has been verified by anyone on this project. Several of them —
-specifically the named papers *"Towards a Science of AI Agent Reliability"* and *"Verified Tool
-Calls Improve LLM Agent Reliability Under Non-Atomic Failures"*, the *"Temporal Validity in
-Retrieval Memory"* paper, the *Datadog State of AI Engineering 2026* figures, and the
-*"MCP 2026-07-28"* protocol revision — cannot be confirmed from the architect's own knowledge.
-Treating them as `FACT` is exactly the error the charter exists to prevent.
+**Reason:** the problem is directly addressed by current research and tooling — verified
+tool-call / postcondition work, postcondition MCP implementations, exactly-once middleware,
+runtime execution-proof work, and current agent-control standards. Building a product whose
+thesis is a solved problem produces a worse version of something that already exists.
 
-**Disposition:**
+**Retained, demoted:** runtime assurance, outcome adjudication, postcondition verification,
+telemetry, replay, and policy enforcement are **supporting mechanisms**. They are how trials are
+executed and observed. They are not the product.
 
-| Claim (abridged) | Original label | Adjudicated label | Reason |
-|---|---|---|---|
-| Agent behaviour is stochastic and varies across runs | FACT | `FACT` | Directly observable; will be measured by our own harness at Gate 3. Independent of the citation. |
-| Reliability needs consistency/robustness/predictability/safety, not single-run success | FACT | `DESIGN_DECISION` | This is a *modelling choice we endorse*, not an empirical fact. Adopt it because single-run success is provably not identifiable under stochasticity — not because a paper says so. |
-| Non-atomic tool failures produce duplicate side effects absent idempotency/verification | FACT | `FACT` | True by construction of distributed systems (two-generals). Provable in our own synthetic environment at Gate 2. Citation not required. |
-| Provider rate limits are a material failure source and amplify retries | FACT | `FACT` | Directly observable against Groq/OpenRouter. Will be measured, not assumed. |
-| Long contexts suffer relevance/noise problems | FACT | `ASSERTED_UNVERIFIED` | Plausible and widely reported, but we have not measured it and it is not load-bearing before Gate 6. Do not build on it. |
-| Stale facts are a structural retrieval problem absent temporal validity modelling | FACT | `DESIGN_DECISION` | A schema choice (model validity intervals), not an empirical finding. |
-| Indirect prompt injection can cause agents to act on embedded instructions | FACT | `FACT` | Demonstrable in our own environment at Gate 7; we will demonstrate it rather than cite it. |
-| Tool metadata/annotations are hints, not enforcement | FACT | `FACT` | True by construction: annotations are data supplied by the same untrusted channel as the payload. Logically entailed, not empirical. |
-| OpenTelemetry GenAI conventions exist and warn message content may be sensitive | FACT | `ASSERTED_UNVERIFIED` | Convention names and stability level must be pinned against the actual spec before we depend on field names. See `OQ-07`. |
-| Existing platforms already offer tracing/eval/monitoring; do not clone | FACT | `FACT` | Independently true and strategically load-bearing. See §C. |
+**New centre:** an interaction-aware, stateful **experiment engine and failure laboratory**.
 
-**Consequence:** citations do not enter the architecture. Every mechanism in this system must be
-justifiable from first principles or from a measurement we will take ourselves. Where a
-mechanism's *only* justification is an unverified citation, it is deferred, not built.
+### 0.1 Truth discipline
+
+Every substantive statement carries one label from the model in §L. The old six-label scheme is
+replaced (see `ARCHITECTURE_SURFACE.md` §L) because it conflated *how a statement was derived*
+with *how true it is*.
+
+Planning-document labels used below: `FACT`, `ASSERTED_UNVERIFIED`, `ASSUMPTION`,
+`DESIGN_DECISION`, `OPEN_QUESTION`.
+
+### 0.2 Citation audit — retained from 0.1.0
+
+`PROJECT_CONTEXT.json` labels ten claims `FACT` with 2026 citations that nobody on this project
+has verified. That adjudication stands: no citation enters the architecture. Every mechanism is
+justified from first principles or from a measurement this project will take itself. See
+`TASK_STATE.json` → `dangerous_assumptions.DA-12`.
 
 ---
 
 ## A. What exact problem are we solving?
 
-### A.1 The one-sentence problem statement
+### A.1 The problem statement
 
-> When a tool-using AI agent finishes acting on enterprise systems, nobody can currently answer,
-> with evidence rather than inference, whether every side effect it attempted actually happened
-> exactly once — and this project builds the deterministic runtime that can answer it, prove
-> failures, and test causal explanations by intervention rather than correlation.
+> Given a tool-using agent, its environment model, tool contracts, and explicit reliability and
+> safety invariants, **systematically explore combinations** of runtime faults, tool behaviour,
+> context and state mutations, policy and configuration changes, and model behaviour; identify
+> invariant violations; **minimize** the failing configuration and trace; and **compile** the
+> result into a reproducible regression test.
 
-### A.2 The problem restated as a concrete, observable defect
+### A.2 The hard part, stated precisely
 
-An agent calls `ticket.create(...)`. The HTTP client times out at 30 seconds. The agent's
-framework retries. Four things are now simultaneously possible and the system cannot distinguish
-between them:
+`FACT`: single-factor robustness testing is cheap and widely done. Inject a timeout, see what
+breaks. The failures that reach production are **interaction effects across layers and over
+state and time**, which single-factor testing cannot reach by construction.
 
-1. The request never reached the service. No ticket exists. Retry is correct.
-2. The request reached the service, the ticket was created, the response was lost. Retry
-   creates a duplicate. A human is now paged twice.
-3. The request reached the service, failed a validation rule, the error response was lost.
-   Retry fails identically. The agent burns budget and reports success on a hallucinated
-   ticket ID.
-4. The request is still in flight and will commit after the retry commits. Retry creates a
-   duplicate with a *race*, and the ordering of the two writes is non-deterministic.
+Worked examples the engine must be able to find:
 
-**`FACT`:** a timeout carries zero information about whether the side effect occurred. Every
-system that retries on timeout without a verification step is, in the formal sense, guessing.
+| Interaction | Why neither factor alone shows it |
+|---|---|
+| timeout-after-dispatch **+** retry policy **+** eventual consistency | Each is individually handled. Together, the reconciliation probe reads a stale replica, reports NOT_APPLIED, and authorises the duplicating retry. |
+| stale context **+** tool schema change | Stale context alone yields a wrong-but-valid call. Schema change alone yields a clean contract error. Together, the stale context supplies arguments that happen to validate under the new schema and silently target the wrong resource. |
+| permission narrowing **+** re-planning | Narrowing alone produces a clean denial. Re-planning alone is normal. Together, the agent routes around the denial via a different tool that is still permitted and achieves the forbidden effect. |
+| 429 **+** nested retry **+** parallel workers | Each worker's backoff is correct in isolation. Together they resynchronise and amplify. |
+| model drift **+** changed policy | Either alone is detectable by a canary. Together, the drift changes which tools are selected and the policy change makes a previously-unused path newly reachable. |
+| two individually-safe agents **+** shared state | Each satisfies its invariants in isolation. Interleaved, one's write invalidates the other's precondition between check and act. |
 
-**`FACT`:** this is not an LLM problem. It is a distributed-systems problem that agent
-frameworks re-introduced by wrapping non-idempotent HTTP calls in automatic retry loops driven
-by a stochastic planner.
+`DESIGN_DECISION`: the factor model, the covering-array planner, the reducer and the interaction
+analyzer exist **only** to make this class reachable, minimizable and regression-testable. Any
+component that does not serve that is out of scope.
 
-The problem generalises. The same structural gap produces:
+### A.3 The claim, narrowed
 
-- an agent that reports "I updated the record" when it updated nothing;
-- an incident review that concludes "the model regressed" when a tool's schema changed;
-- a reliability number that says 94% when the true rate under a 200ms latency increase is 61%;
-- a policy control that exists only as a sentence in a system prompt.
+**We do not claim these combinations are unexplored by industry.** They are known, and several
+are named in vendor postmortems and research.
 
-### A.3 What "solved" means — the falsifiable success criteria
+The claim is narrower and is the whole claim:
 
-The project succeeds if, at Gate 5, the following are demonstrably true in the synthetic
-environment. Each is a test, not an opinion.
+> An **integrated, reusable, experiment-driven workflow** that makes interaction effects in
+> tool-using agents **measurable, reducible, and regression-testable** — with explicit coverage
+> accounting and explicit limits on what each result supports.
+
+Every word is load-bearing. *Integrated* because the pieces exist separately. *Reusable* because
+a one-off investigation is not a product. *Measurable* because detection without estimation is
+an anecdote. *Reducible* because an unminimized failure is not actionable. *Regression-testable*
+because a failure you cannot re-run is a story.
+
+### A.4 Falsifiable success criteria
 
 | # | Criterion | Falsification test |
 |---|---|---|
-| S1 | No side-effecting tool call is ever classified `VERIFIED_SUCCESS` on the basis of a transport-level response alone. | Inject a tool that returns HTTP 200 and writes nothing. System must classify `VERIFIED_FAILURE`, not success. |
-| S2 | Under injected timeout-after-dispatch, the system produces zero duplicate side effects across 200 trials, or explicitly reports `UNKNOWN_OUTCOME` and refuses to retry. | Fault injector; count rows in the synthetic backing store; assert `count == 1 OR state == UNKNOWN_OUTCOME/ABORTED`. |
-| S3 | Every causal statement the system emits carries a label from the truth-label set, and no statement labelled `FACT` has an LLM anywhere in its derivation chain. | Static check over the evidence graph: walk provenance edges, assert no `LLM_SYNTHESIS` extraction method under any `FACT`. |
-| S4 | The full analysis pipeline — detection, graph, hypothesis ranking, replay, evidence — produces identical output with the LLM provider unreachable, minus the narrative paragraph. | Run the suite with network egress to providers blocked. Diff structured output. Must be byte-identical. |
-| S5 | A counterfactual claim ("removing fault F removed the failure") is only emitted when backed by ≥ n paired replay trials with a reported effect size and interval, and is never phrased as root cause. | Schema-level: `CounterfactualEvidence` requires `n`, `effect`, `interval`, `divergence_rate`. Rejected at write time otherwise. |
-| S6 | Reliability is reported as a vector with per-cell sample sizes and intervals, never as a single scalar without its vector adjacent. | Report serialiser test. |
+| S1 | A trial is byte-reproducible: same `(fixture_digest, seed, factor_assignment, agent_version, environment_version)` ⇒ same `trace_digest`. | Run 1000 trials twice. Any digest mismatch fails the gate. |
+| S2 | The engine finds at least one **2-factor interaction failure that neither factor produces alone**, in the synthetic environment, without that interaction being pre-scripted. | Run the pairwise screen. Verify the failing pair's single-factor arms pass at n≥50 each. |
+| S3 | A found failure minimizes to a configuration that reproduces at a **recorded, measured rate**, and the reducer reports non-monotonicity when it occurs rather than hiding it. | Seeded non-monotone fixture: reducer must emit `REDUCTION_UNSTABLE`, not a confident minimum. |
+| S4 | A minimized failure compiles to a regression artifact that **re-executes from the artifact alone** on a clean checkout and reproduces at its recorded rate ± its recorded interval. | Artifact replay test in CI. |
+| S5 | The entire deterministic pipeline — plan, run, oracle, reduce, fingerprint, analyze, compile — runs with **zero LLM availability**, producing byte-identical structured output. | Block provider egress. Diff structured output. |
+| S6 | Coverage reports state what was **not** explored, with sample sizes, and no result is reported without its n and interval. | Report serialiser test. |
+| S7 | No oracle verdict, observed event, or reduction step can be constructed by any component that does not hold the corresponding capability token. | Type-level: the narrator module is not passed a capability; attempting construction is a type error, not a lint warning. |
 
-If S1, S2, and S4 do not hold, the project has failed regardless of how much else works.
+If S1 or S5 fails, the project has failed. S1 because without determinism there is no
+minimization and no regression artifact. S5 because an experiment engine that needs an LLM to
+schedule its own experiments has no claim to rigour.
 
 ---
 
 ## B. Explicit non-goals
 
-Carried from `PROJECT_CONTEXT.json`, plus additions the architecture review adds.
+### B.1 Not the product centre
+- Generic observability / tracing / dashboards.
+- Generic RAG.
+- **Standalone postcondition verification.** (Demoted from 0.1.0's centre. Retained as a mechanism.)
+- Generic red-teaming or jailbreak research.
+- Generic multi-agent demo.
 
-### B.1 Inherited non-goals
-- Generic chatbot.
-- Generic RAG assistant.
-- Dashboard-only observability clone.
-- Standalone red-team product.
-- Generic multi-agent showcase.
-- Production certification claim.
-- Real enterprise credential integration in v1.
-
-### B.2 Non-goals added by this review
-
-| Non-goal | Why it is excluded |
+### B.2 Added by this review
+| Non-goal | Why |
 |---|---|
-| **Competing with LLM tracing/eval vendors on tracing or eval breadth.** | See §C. That market is saturated and well-capitalised. We would lose, and losing there does not advance the actual thesis. We ingest telemetry; we do not sell telemetry. |
-| **A general-purpose causal inference engine.** | We have no interventional access to the model's internals and no base rates. We can only do interventions on the *environment*. Claiming more is fraud. See §M in `ARCHITECTURE_SURFACE.md`. |
-| **Automatic remediation / self-healing.** | An automatic actor on top of a system whose outcome adjudication is still unproven would amplify every failure mode in `FAILURE_TAXONOMY.md`. Adjudication must be shown correct for a long time before it is allowed to act. |
-| **Supporting arbitrary third-party agent frameworks at Gate 1.** | Framework adapters are a long tail with no architectural content. One reference agent we control, behind a documented ingestion contract. Adapters are a post-Gate-5 exercise. |
-| **A user-facing UI as a milestone.** | Gate 8 in the bootstrap is a dashboard, and "dashboard-only observability clone" is a stated non-goal. These are in tension. Resolution: every artifact the UI would show must be produced, tested and exportable headlessly *first*. The UI is a rendering of artifacts that already pass tests. It is never the deliverable. |
-| **Inference-time model improvement.** | We measure and constrain the agent. We do not fine-tune, prompt-optimise, or route models for quality. Different project. |
-| **Multi-tenancy.** | Single logical tenant through Gate 5. Multi-tenant isolation of an append-only evidence ledger is a real design problem and adding it now buys nothing testable. |
-| **Distributed deployment.** | Single-process control plane until a measurement forces otherwise. See ADR-0001. |
+| **Proving exactly-once execution against arbitrary external systems.** | We can prove what the controlled environment and its oracle support. For anything else the correct output is `INDETERMINATE` / `UNVERIFIABLE`. See §D.4. |
+| **A causal engine.** | We run *controlled interventions* inside a fixture. That supports statements about the experiment, never about production. |
+| **Autonomous remediation.** | Out of scope until adjudication and reduction are shown correct over a long period. |
+| **A deterministic concurrency simulator.** | The `concurrency` factor is scoped to *coarse interleaving points the adapter controls*, not arbitrary thread scheduling. Full deterministic scheduling is a different and much larger build. See `OQ-05`. |
+| **A UI as a milestone.** | Every artifact must be produced, tested and exportable headlessly. Rendering is last. |
+| **Supporting arbitrary third-party agent frameworks initially.** | One reference agent behind a documented adapter contract. Adapters are a long tail with no architectural content. |
 
 ---
 
-## C. What already solves parts of this — honest competitive assessment
+## C. What exists already — four explicit categories
 
-**`FACT`: most of the surface area described in the bootstrap is commodity.** Pretending
-otherwise is the fastest way to build something that nobody needs.
+`COMPETITIVE_OVERLAP.md` holds the detail. The charter records the four-way split the pivot
+requires.
 
-| Capability | Already solved, well, by | Our position |
+### C.1 Existing capabilities we **consume** (build none of this)
+| Capability | Source |
+|---|---|
+| Tracing, span trees, cost/latency attribution | OpenTelemetry + GenAI conventions, OpenLLMetry/OpenInference |
+| Property-based and stateful testing primitives | Hypothesis (Python) |
+| Covering-array generation | Established CT tooling / published IPOG-family algorithms |
+| Delta debugging | Published ddmin and its descendants |
+| Sandboxing and egress control | Container/runtime layer; not ours |
+| Durable execution, compensation | Temporal et al. — **not adopted**, not rebuilt |
+| Statistical primitives | Wilson intervals, McNemar, Benjamini–Hochberg — standard |
+
+### C.2 Existing research and tools that **overlap** (we are not first)
+| Overlap | Who | Severity |
 |---|---|---|
-| Distributed tracing of LLM/agent calls, span trees, latency/token/cost attribution | OpenTelemetry + OpenLLMetry/OpenInference; LangSmith; Arize Phoenix; W&B Weave; Braintrust; Datadog LLM Observability; Azure AI Foundry observability; Langfuse | **Consume, do not rebuild.** Emit OTel-shaped telemetry. Our event contract is a *superset* with adjudication fields they do not have. |
-| Dataset-based offline eval, LLM-as-judge, regression gates in CI | LangSmith, Braintrust, Phoenix, Weave, promptfoo, DeepEval, Inspect | **Do not compete.** Our evaluation plane exists to measure *reliability under fault*, which is a different axis from output quality. |
-| Prompt management, versioning, A/B | LangSmith, Braintrust, Langfuse, PromptLayer | **Out of scope entirely.** |
-| Guardrails: PII, jailbreak, toxicity, topical filters | NeMo Guardrails, Guardrails AI, Azure Content Safety, Bedrock Guardrails, Lakera | **Out of scope.** Our policy layer authorises *actions on resources*, not text content. |
-| Agent sandboxing / egress control | E2B, Modal, Daytona, gVisor, container network policy | **Depend on, do not rebuild.** Our threat model assumes such a layer exists (§ THREAT_MODEL). |
-| Durable execution, retries, compensation (saga) | Temporal, Restate, DBOS, AWS Step Functions | **Genuinely overlapping.** Temporal solves durable retry and compensation properly. We are *not* rebuilding Temporal. We are building the layer Temporal does not have: deciding whether a side effect occurred when the answer is unknown, and using that decision to gate the retry Temporal would otherwise perform. See ADR-0001 §Temporal. |
-| Idempotency keys, exactly-once-effect semantics | Stripe, payment infrastructure generally; well-understood pattern | **Adopt the known pattern.** Novelty is not in the key; it is in what you do for tools that *do not support one*. |
-| Deterministic record/replay of distributed systems | Antithesis, FoundationDB's simulation, rr, Jepsen (for a different question) | **Adopt the mindset.** We are not building a deterministic simulator of the world; we are building replay over a recorded trace with an explicit, published fidelity contract. |
-| Fault injection / chaos | Chaos Mesh, Gremlin, Toxiproxy, Litmus | **Adopt. Do not rebuild.** Our fault injector is in-process for the synthetic environment because it must be *deterministically schedulable per-trial*, which network-level chaos tools are not. |
-| Causal RCA on traditional telemetry | Datadog Watchdog, Dynatrace Davis, Causely, Netflix's Edgar-lineage work | **Nearest neighbour.** Their substrate is metrics/traces on deterministic services. Ours is a stochastic planner where the same input legitimately produces different actions — which breaks the assumptions most of these rely on. |
+| Deterministic simulation testing: explore fault combinations, minimize, reproduce | FoundationDB simulation lineage; Antithesis; TigerBeetle VOPR | **SEVERE** — closest commercial overlap |
+| Chaos engineering with fault matrices | Gremlin, Chaos Mesh, Litmus | HIGH |
+| Combinatorial interaction testing | NIST ACTS, PICT, CAgen; 25 years of published CIT literature | **The algorithms are theirs** |
+| Test-case minimization + regression compilation | ClusterFuzz, OSS-Fuzz, C-Reduce, Perses | **The loop is theirs** |
+| Crash bucketing / failure fingerprinting | ClusterFuzz grouping, Sentry grouping | HIGH |
+| Model-based testing of stateful systems | TLA+/P, stateful Hypothesis, QuickCheck-family | HIGH |
+| Agent eval harnesses with fault plugins | Inspect, promptfoo, DeepEval, LangSmith, Braintrust | MEDIUM |
+| Verified tool calls / postcondition MCP / exactly-once middleware | The 0.1.0 thesis | **Solved. Demoted to mechanism.** |
 
-### C.1 The uncomfortable conclusion
+### C.3 Our integration focus (the only defensible claim)
+1. A **factor model specific to tool-using agents** — fault × tool-capability × context × policy ×
+   runtime × model — where **tool capability profile is itself a varied factor**, not an assumed
+   constant.
+2. An **oracle set expressed as agent-reliability invariants** rather than as crash/assert
+   signals, evaluable deterministically against an environment ground-truth log.
+3. A **regression artifact format for stochastic, stateful agent failures**, carrying a measured
+   reproduction rate and explicit invalidation conditions, rather than a pass/fail test.
+4. **Coverage accounting over the agent factor space**, including the unexplored remainder.
 
-**`ASSUMPTION` (high confidence, owner: architect, invalidation: a competitor ships
-`UNKNOWN_OUTCOME` adjudication as a product):** roughly 70% of what the bootstrap describes is
-already a commodity. If this project builds all eight gates evenly, it produces a worse
-LangSmith with a worse Temporal attached. The only defensible strategy is to be *narrow and
-deep* on the part nobody has built, and *thin and standards-compliant* everywhere else.
+Everything else is borrowed, and the documents say so.
+
+### C.4 What we will **NOT** claim
+- Not that interaction effects in agents are undiscovered.
+- Not that the algorithms are novel. They are textbook and we cite them as such.
+- Not exactly-once against arbitrary external systems (§D.4).
+- Not causality beyond controlled intervention inside a fixture.
+- Not production readiness, from synthetic evidence.
+- Not a single "agent reliability score".
+- Not that a passing experiment suite means an agent is safe. It means the explored region
+  produced no invariant violation, at the stated sample sizes.
 
 ---
 
-## D. What is genuinely distinctive
+## D. Mandatory corrections applied
 
-Stated as narrowly as it can honestly be stated. Anything broader is marketing.
+The pivot's ten corrections, and where each now lives.
 
-### D.1 The core claim
+### D.1 `OQ-01` reframed — capability profile becomes a factor
 
-> **Treating the outcome of a side-effecting tool call as an adjudicated verdict with an explicit
-> `UNKNOWN` state, and using controlled fault-injection replay as the only permitted source of
-> causal evidence about that verdict.**
+**Old:** block the first runtime implementation on *"what percentage of real APIs expose
+idempotency keys and probes?"*
 
-Three components, none individually novel, whose *combination* is not shipped anywhere we know of:
+**New:** a **semantic capability taxonomy**. Each adapter declares an 8-property profile:
 
-**(1) `UNKNOWN_OUTCOME` as a first-class, terminal-capable state.**
-Every framework we are aware of collapses tool-call outcomes to success/failure. That collapse
-is where duplicate side effects are born. Making "we do not know" a state the runtime can *stay
-in*, refuse to retry from, and escalate on, is a small change with large consequences.
+| # | Property | Values |
+|---|---|---|
+| CP1 | Stable logical action identity | `STABLE` / `DERIVABLE` / `UNSTABLE` |
+| CP2 | Idempotent effect semantics | `PURE_READ` / `IDEMPOTENT_READ` / `IDEMPOTENT_WRITE` / `NON_IDEMPOTENT_WRITE` / `UNKNOWN` |
+| CP3 | Authoritative reconciliation source | `AUTHORITATIVE` / `REPLICA` / `NONE` |
+| CP4 | Consistency / freshness bound | `STRONG` / `BOUNDED(ms)` / `EVENTUAL` / `UNDECLARED` |
+| CP5 | Postcondition predicate | `EXACT` / `HEURISTIC` / `NONE` |
+| CP6 | Outcome discrimination | can distinguish `APPLIED` / `NOT_APPLIED` / `INDETERMINATE`: `FULL` / `PARTIAL` / `NONE` |
+| CP7 | Probe safety | `SIDE_EFFECT_FREE` / `COSTLY` / `UNSAFE` |
+| CP8 | Required authorization scope | declared scope set |
 
-**(2) A tool capability matrix that mechanically determines retry legality.**
-Not a policy someone writes. A decision table over four declared, testable properties of each
-tool — `is_read_only`, `accepts_idempotency_key`, `has_postcondition_probe`,
-`has_compensation` — that produces a *deterministic* verdict on whether this call may be
-retried, must be probed first, or must escalate to a human. A tool that declares a property it
-does not have fails a contract test. This turns "be careful with retries" into a compile-time
-property.
+**The payoff, and it is the single most important consequence of the pivot:** the capability
+profile is a **CONFIG factor in the experiment space**. We do not need to know what fraction of
+real APIs are well-behaved in order to start. We *degrade the profile deliberately* and measure
+what breaks. `CP3=NONE, CP4=EVENTUAL, CP6=NONE` is a level, not an obstacle.
 
-**(3) Causal claims sourced only from interventions we control.**
-We cannot randomise the model. We *can* randomise fault injection. Therefore: the only
-counterfactual statement this system is permitted to make is of the form *"across n paired
-trials on the same task and seed, with fault F injected vs. not injected, the failure rate
-differed by X [CI]."* That is a genuine randomised intervention with a measurable effect. It is
-narrow, it is honest, and it is more than correlation-mining over traces can ever deliver.
+The real-API survey survives, demoted, as **`OQ-01`: adapter-prioritization study and
+external-validity limitation** — it tells us which profile levels deserve the most trials and
+bounds what our results generalise to. It blocks **nothing**.
 
-### D.2 What is explicitly NOT distinctive
+### D.2 Idempotency semantics fixed — three separate identities
 
-Tracing. Span trees. Cost dashboards. LLM-as-judge. Vector retrieval. Graph visualisation.
-Multi-agent orchestration. A "reliability score". We will build the minimum of these needed to
-support D.1 and no more. Any pull toward expanding them is scope failure and should be
-challenged in review.
+`FACT` (logical): deriving a deduplication key from schema version means a serialization change
+silently creates a *different* side-effect identity for the *same* logical effect. That is a
+correctness bug the 0.1.0 design introduced. Corrected:
 
-### D.3 The strategic risk of D.1
+| Field | Meaning | Changes when |
+|---|---|---|
+| `effect_id` | **Stable logical action identity.** The identity of the intended effect. | The *semantic* target or intent changes. Never on serialization or schema change. |
+| `request_digest` | Exact wire representation of one attempt. | Any byte changes. Used for replay matching and drift detection. **Never for dedup.** |
+| `schema_version` | Contract version in force. | Tool contract changes. Recorded, never mixed into `effect_id`. |
 
-**`OPEN_QUESTION` (`OQ-01`, blocking for Gate 2 design):** the entire distinctive claim depends
-on tools exposing postcondition probes. In the synthetic environment we control this and it is
-trivially true. In any real enterprise, a large fraction of tools will expose no read-after-write
-probe, no idempotency key, and no compensation. If that fraction is high, the honest output of
-this system for most real tools is *"UNKNOWN, escalate to a human"* — which is correct, valuable,
-and also a much smaller product than the bootstrap implies. This must be confronted before Gate 2,
-not after. Resolution method: enumerate the tool surface of 3 real enterprise SaaS APIs
-(ticketing, identity, HR) from public API documentation and classify each write endpoint against
-the four capability properties. Report the actual percentages.
+`effect_id = H(execution_id ‖ logical_step_id ‖ semantic_key(args))` where `semantic_key` is a
+tool-declared extractor over the semantically-identifying arguments, HMAC'd with a per-deployment
+secret (§THREAT_MODEL §4.5).
+
+**Rules:**
+- A retry of the same logical effect **retains the same `effect_id`**, whatever the serialization.
+- If `semantic_key` changes between attempts, that is a **new logical action** if the planner
+  intended one, or a **failed-closed contract violation** if it did not. It is never a silent new
+  key.
+- A tool that cannot supply `semantic_key` has `CP1=UNSTABLE`, which forces `CP2` treatment as
+  `NON_IDEMPOTENT_WRITE` regardless of what it claims.
+
+### D.3 Evidence semantics fixed — five orthogonal fields
+
+`FACT` (logical): extraction method is not epistemic truth. A deterministic parse of a lying
+tool's response is a deterministic derivation **about what the tool said**, not a fact about the
+world. The 0.1.0 label lattice made that error. Corrected to five independent fields plus an
+explicit claim scope — see `ARCHITECTURE_SURFACE.md` §L.
+
+The governing rule: **`claim_scope` is never `PRODUCTION_BEHAVIOR`.** This system cannot assert
+it, at any assurance level, by any derivation method.
+
+### D.4 Causal language fixed
+
+- "Randomized intervention" is **removed**. Treatment assignment in a covering array is
+  *systematic*, not random. Within a designed follow-up, assignment is *balanced*, not random,
+  unless we explicitly randomise — and where we do, we say so and show the randomisation.
+- Fault on/off experiments are **`CONTROLLED_INTERVENTION_RESULT`**.
+- A deployment or version change is **`STATISTICAL_ASSOCIATION`** — observational. The phrase
+  "natural experiment" is removed; nothing in our design justifies it.
+- Banned from all output: *root cause*, *caused by*, *due to*, *because of*, *natural experiment*,
+  *randomized*. Lint is a secondary check; the primary control is that no component holds a
+  capability to construct a claim at those types (§D.8).
+
+### D.5 The 90/7/3 split is removed — three separate evidence layers
+
+`DESIGN_DECISION`: the arbitrary percentage split is gone. Three layers, **never combined into a
+single statistic**:
+
+| Layer | What it is | Sizing | What it supports |
+|---|---|---|---|
+| **L-DET** | Deterministic runtime/oracle contract suite against the stub planner and fixture substrate. | **Exhaustive where feasible**, covering-array bounded otherwise. | Claims about the *runtime, adapters and oracles*. Nothing about models. |
+| **L-LOC** | Local-model behavioural canary. | **Fixed small set**, declared up front. | Claims about *one local model's behaviour under named factors*. |
+| **L-REM** | Remote-provider canary. | **Fixed budgeted set**, declared up front. | Claims about *that provider/model on that date*. Nothing beyond. |
+
+There is no weighting, no pooling, no aggregate. A report showing all three shows three tables.
+
+### D.6 Retry safety by semantic effect class
+
+HTTP verb and a `read_only` boolean are removed as retry criteria. Retry legality is a lookup
+over `(CP2 effect class, CP1 identity stability, CP3 reconciliation source)` — see
+`ARCHITECTURE_SURFACE.md` §J. The `UNKNOWN` class exists and routes to `INDETERMINATE`.
+
+### D.7 Central claim narrowed
+
+> The platform proves what its **controlled environment and its oracle** support. For any system
+> whose adapter does not supply the required capability, the output is **`INDETERMINATE` /
+> `UNVERIFIABLE`**, and that is a first-class, frequently-correct result.
+
+"Exactly-once against arbitrary external systems" is unprovable by this or any system, and the
+documents say so.
+
+### D.8 Capability isolation replaces source lint as the primary control
+
+`DESIGN_DECISION`: illegal evidence production is made **impossible by construction**, not
+forbidden by a linter.
+
+- `ObservedEvent` can only be constructed with a `LedgerReadCapability`.
+- `OracleVerdict` can only be constructed with an `OracleCapability`.
+- `ReductionStep` can only be constructed with a `ReducerCapability`.
+- `DispatchHandle` can only be obtained with a `DispatchCapability`.
+- The narrator is a pure function `(EvidenceBundle) -> str`. It is **never passed any capability
+  token**, so it cannot construct any of the above. Not "must not" — cannot.
+
+Static lint is retained as a **secondary** defence only, and the documents no longer describe it
+as the architecture.
+
+### D.9 Replay claims made precise
+
+| Mode | Definition | Claim it supports |
+|---|---|---|
+| `EXACT_REPLAY` | Recorded inputs and outputs replayed; **no external effects**. | "Our analysis produces X over this recorded trace." |
+| `CONTROLLED_REPLAY` | Frozen deterministic fixtures and substrate; factors toggled. | "Under this fixture and seed, this factor assignment yields this outcome at rate k/n." |
+| `LIVE_EXECUTION` | Fresh external calls. Stochastic. **Not replay-equivalent** and not called replay. | "On this date, against this provider, n runs produced this distribution." |
+
+**Any trajectory divergence invalidates downstream counterfactual interpretation** unless
+explicitly handled — the divergence detector is mandatory and `divergence_rate` is a required
+field on every intervention result. See `ARCHITECTURE_SURFACE.md` §N.
+
+### D.10 LLM demoted to optional narration
+
+The LLM is the **system under test** or an **optional narrator**. It is never required for:
+fault scheduling, experiment design arithmetic, authorization, state transitions, oracle
+evaluation, anomaly math, hypothesis ranking, replay integrity, benchmark scoring, evidence
+bookkeeping, or failure reduction.
+
+Criterion S5 tests this on every CI run.
 
 ---
 
 ## E. Minimum architecture
 
-Detailed in `ARCHITECTURE_SURFACE.md`. Summarised here as the charter-level commitment:
+Eleven components, one process, PostgreSQL plus a filesystem fixture store. Detail in
+`ARCHITECTURE_SURFACE.md`.
 
-**Eight components. One process. One database. No message broker. No graph database. No vector
-database. No workflow engine. No separate policy server.**
+```
+Agent Under Test → Execution Adapter → Canonical Event Ledger
+                                     → Versioned Environment State + Fixture Store
+                                     → Oracle Engine
+Experiment Planner → Runner / Fault Injector → (trials)
+Failure Reducer → Failure Fingerprint → Interaction Analyzer → Regression Compiler
+                                                              → Optional LLM Narrator
+```
 
-1. **Event Contract & Evidence Ledger** — append-only events + content-addressed payload store.
-2. **Reference Agent** — one, instrumented, ours.
-3. **Synthetic Enterprise Environment** — five services, declared schemas, deterministic fault injection.
-4. **Runtime Gateway** — the trust boundary. Policy, budget, idempotency, dispatch, probe, adjudicate.
-5. **Detector Suite** — pure functions over the ledger.
-6. **Execution Graph** — in-process, built on demand from ledger events.
-7. **Replay Engine** — exact + controlled, with divergence detection.
-8. **Reliability Harness** — repeated runs under a fault grid, with statistics.
-
-Plus one optional, strictly-bounded, always-removable component:
-
-9. **Evidence Bundler + LLM Explainer** — 0–2 calls, narration only, never in a `FACT` derivation.
+**Deferred with measured triggers:** Neo4j, Qdrant, ClickHouse, Temporal, OPA as a process, A2A,
+Bayesian optimization, RL-based test generation, multi-agent swarms, any frontend.
 
 ---
 
 ## F. What should NOT be built yet
 
-Each deferral carries the measurement that would justify building it. "It would be nice" is not
-a trigger. "This measurement exceeded this threshold" is.
-
-| Deferred | Trigger to build |
+| Deferred | Trigger |
 |---|---|
-| Neo4j / any graph DB | Execution graph construction for a single incident exceeds 500ms at p95 in-process, *or* cross-execution graph queries become a required feature with > 10^6 nodes. |
-| ClickHouse / columnar store | Ledger exceeds 10^8 events *or* detector scans exceed 5s at p95 on Postgres with correct indexes. |
-| Qdrant / vector DB | Gate 6 is reached *and* lexical retrieval (BM25 + temporal/provenance filter) demonstrably misses a documented class of queries. Measure the miss rate first. |
-| Temporal / durable execution engine | An execution must survive control-plane process restart *and* the internal state machine's recovery path has failed a documented test. Not before. |
-| OPA / Rego as a separate process | Policy rule count exceeds ~50, *or* non-engineers must author policy, *or* policy must be updated without redeploy. Until then: a pure-Python decision table behind an OPA-shaped query interface (`input` dict → `{allow, reasons, obligations}`) so migration is a swap, not a rewrite. |
-| MCP server/client implementation | Gate 7. The tool interface is an internal Python protocol through Gate 6; MCP is one adapter behind it. Binding to MCP early couples us to a churning spec — see `OQ-07`. |
-| A2A / inter-agent protocol | Not before a second agent has a measured reason to exist. Currently there is none. |
-| Next.js frontend | After Gate 5, and only over artifacts that already pass headless tests. |
-| Rerankers, RRF, dense embeddings | Gate 6, after the lexical baseline's failure modes are measured. |
-| Multi-tenancy, RBAC on the control plane, audit export signing | Post-Gate-8. Real requirements, wrong time. |
-| Any second LLM provider beyond one primary + one fallback | Never, unless a measured capability gap exists. Two providers is already a source of silent behavioural drift (`FM-11`). |
+| Graph database | Factor/execution graph queries exceed 500 ms p95 from relational tables **and** the query set is genuinely graph-shaped. |
+| ClickHouse | Ledger exceeds 10⁸ rows **or** coverage queries exceed 5 s p95 on indexed Postgres. |
+| Vector database | A retrieval-dependent factor is introduced **and** lexical baseline miss rate is measured and unacceptable. |
+| Temporal | A trial must survive runner restart **and** the in-process recovery path has failed a documented test. |
+| OPA process | Policy factor levels exceed ~50 rules **or** non-engineers must author them. Until then: a pure decision table behind an OPA-shaped query interface. |
+| Bayesian optimization / RL test generation | Transparent adaptive search (C3) has been measured and shown insufficient on a named metric. |
+| MCP adapter | Gate 6. One adapter behind the internal tool protocol. |
+| Deterministic concurrency scheduler | `OQ-05` resolved and the coarse interleaving model shown insufficient. |
+| Frontend | After Gate 6, over artifacts that already pass headless tests. |
 
 ---
 
-## G–T
+## G–T and the rest
 
-Answered in the companion documents:
-
-- **G. Trust boundaries** → `THREAT_MODEL.md` §1, `ARCHITECTURE_SURFACE.md` §G
-- **H. Canonical execution/event model** → `ARCHITECTURE_SURFACE.md` §H
-- **I. Execution state machine** → `ARCHITECTURE_SURFACE.md` §I
-- **J. Non-atomic tool calls** → `ARCHITECTURE_SURFACE.md` §J
-- **K. Rate limits, retries, runaway loops** → `ARCHITECTURE_SURFACE.md` §K, `QUOTA_AND_COST_MODEL.md`
-- **L. Evidence representation** → `ARCHITECTURE_SURFACE.md` §L
-- **M. Causal hypotheses without correlation-as-causation** → `ARCHITECTURE_SURFACE.md` §M
-- **N. Replay mode semantics** → `ARCHITECTURE_SURFACE.md` §N
-- **O. Reliability measurement** → `EVALUATION_STRATEGY.md` §O
-- **P. Protecting evaluation from grader bugs / leakage / shared state** → `EVALUATION_STRATEGY.md` §P
-- **Q. What may be stored in telemetry** → `THREAT_MODEL.md` §Q
-- **R. What must be redacted or excluded** → `THREAT_MODEL.md` §R
-- **S. Usefulness without an LLM provider** → `QUOTA_AND_COST_MODEL.md` §S
-- **T. What breaks at enterprise scale** → `ARCHITECTURE_SURFACE.md` §T
+- Trust boundaries, event model, state machine, retry semantics, evidence model, replay, scale
+  limits → `ARCHITECTURE_SURFACE.md`
+- Factor space, covering arrays, reduction, fingerprinting, interaction analysis →
+  `INTERACTION_MODEL.md`
+- Regression artifact format → `REGRESSION_ARTIFACT_SPEC.md`
+- Failure classes, architectural failure modes, adversarial review → `FAILURE_TAXONOMY.md`
+- Oracles, coverage accounting, statistics, leakage → `EVALUATION_STRATEGY.md`
+- Telemetry, redaction, capability isolation → `THREAT_MODEL.md`
+- Budgets and degradation → `QUOTA_AND_COST_MODEL.md`
+- Competitive detail → `COMPETITIVE_OVERLAP.md`
+- Decisions of record → `ADR/0001-initial-architecture.md`
 
 ---
 
 ## Production claim
 
-**`FACT`:** this is a prototype and reference implementation. Every result it produces is
-obtained against a synthetic environment the project itself wrote. No claim of production
-readiness, enterprise fitness, or real-world reliability improvement is supported by any
-artifact in this repository, and no such claim may be made in any document, README, demo, or
-report produced here. A synthetic environment can demonstrate that a mechanism *works*; it
-cannot demonstrate that the mechanism *matters* at real scale against real APIs.
+`FACT`: this is a prototype and reference implementation. All results are obtained against a
+synthetic environment and a factor model **this project authored**. A synthetic environment can
+demonstrate that a mechanism works; it cannot demonstrate that the mechanism matters at real
+scale against real systems. No claim of production readiness or of real-world reliability
+improvement is supported by any artifact here.
 
-Saying otherwise is the single easiest way to destroy this project's credibility with the exact
-audience it is aimed at.
+**The sharpest version of that limitation, which belongs in every report:** the factor model is
+our own hypothesis about what can go wrong. The engine can only find failures inside a space we
+imagined. That is the weakest possible property for a discovery tool, and no amount of coverage
+accounting fixes it — coverage is measured *against our own space*. `OQ-08` exists to attack it.
