@@ -1,10 +1,10 @@
 {
-  "schema_version": "0.4.0",
-  "project": "agent-evaluation-integrity-engine",
-  "working_title": "Agent Evaluation Integrity Engine",
+  "schema_version": "0.5.0",
+  "project": "agent-evaluation-assurance",
+  "working_title": "Agent Evaluation Assurance",
   "generated_at": "2026-09-22",
-  "current_gate": "GATE_0_9_EVALUATION_INTEGRITY",
-  "gate_status": "VALIDITY_CORRECTION_COMPLETE_PENDING_BENCHMARK_V2_RUN",
+  "current_gate": "GATE_0_95_BASELINE_CHALLENGE",
+  "gate_status": "PROTOCOL_DRAFTED_NOT_FROZEN_BENCHMARK_NOT_RUN",
   "implementation_authorized": false,
   "pivot": {
     "supersedes": "0.1.0 \u2014 runtime assurance / unknown side-effect adjudication as product thesis",
@@ -155,6 +155,41 @@
     },
     {
       "path": "docs/CONTINUE_OR_KILL_V2.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/GATE_0_95_BASELINE_CHALLENGE.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/BASELINE_C_SPEC.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/CROSS_DIMENSION_DEFECTS.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/METRICS.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/SELF_AUDIT.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/BASELINE_EXPERIMENT.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/KILL_CONTINUE_0_95.md",
       "state": "NEW",
       "version": "0.1.0"
     }
@@ -952,7 +987,7 @@
     "reduction_50_failures": "13-27 hours",
     "note": "A screen that finds more failures makes the run SLOWER. Planning capacity without reduction capacity produces a backlog, not results."
   },
-  "next_action": "Do not build the platform. Build BASELINE-C honestly and the 27-case sealed benchmark, then run K-A. Answer OQ-16 (local model availability) and start the K-F 60-day ownership clock TODAY -- both are free and either can end the project without any engineering.",
+  "next_action": "Do not run the benchmark. Do not freeze the pre-registration. Three things first, all cheap: (1) decide the E2 commission -- 18 more externally authored defects, or accept the primary as a non-result; (2) recruit the BASELINE-C advocate owner, who must not be on the A-INT team and who holds the C-5 veto; (3) start or continue the 60-day K-7 ownership clock. Any of the three can end the project without a line of code.",
   "research_validity_challenge": {
     "thesis_under_test": "Failures in tool-using AI agents emerge from interactions between agent decisions, execution history, environment state, tool semantics, context state, authorization state and runtime conditions; a useful system discovers, characterizes, reduces and regression-tests them.",
     "falsifiable_form": "T*: there exists a class F of failures such that each requires >=2 simultaneously-active conditions from distinct layers; is not found by single-factor sweeps at equal budget; is NOT found by uniform random sampling plus interaction regression at equal budget; is characterizable with decoys excluded; and is non-empty for agents we did not write under dimensions we did not choose.",
@@ -1345,5 +1380,209 @@
     "highest_information_experiment": "Cases V2-25/26/27 (cross-dimension) against BASELINE-C at equal budget, 10 replications each -- ideally 12 cases rather than 3, which halves the confidence interval.",
     "exact_kill_criterion": "detection(BASELINE-C) / detection(A-INT) >= 0.80 overall, OR cross-dimension gap <= 0.20. Either fires KILL.",
     "remaining_thesis": "Evaluation-integrity defects spanning two integrity dimensions escape five mature single-purpose tools run independently, and a falsification-disciplined audit that refuses to attribute when intervention is unavailable catches them."
+  },
+  "gate_0_95": {
+    "thesis": "An agent evaluation can produce a plausible score while being invalid because of interactions among environment, oracle, agent behavior, state, contamination, stochasticity and evaluation design. A useful assurance system should detect these cross-dimension validity defects, use controlled intervention where attribution is possible, refuse unsupported conclusions, and produce an auditable assurance report.",
+    "no_novelty_claimed_for": [
+      "mutation testing",
+      "fuzzing",
+      "fault injection",
+      "model adequacy",
+      "DOE",
+      "metamorphic testing",
+      "contamination detection",
+      "grader auditing",
+      "statistical testing",
+      "replay",
+      "reduction"
+    ],
+    "question": "Whether integrating these mechanisms around AGENT EVALUATION VALIDITY creates measurable value beyond a competent composition.",
+    "baseline_tiers": {
+      "C0": "six mature tools run independently, six separate reports, no cross-referencing. Named so it can be REJECTED as the comparison. Never primary.",
+      "C1": "C0 + shared trial corpus + shared identifiers + a competent engineer's unified cross-reference pass. PRIMARY COMPARISON.",
+      "C2": "C1 + the falsification protocol executed BY HAND. DIAGNOSTIC: decides whether our contribution is the protocol or the engine.",
+      "why_it_matters": "If BASELINE-C is defined as tools that nobody cross-references, we test 'integrated vs not integrated', win by definition, and prove nothing about whether the integration is HARD. Both tiers must run and the primary must be the harder one."
+    },
+    "the_reframe": "C2 beating A-INT is NOT simply a loss. It is a finding about WHAT TO BUILD: if a careful human running the protocol matches the engine, the deliverable is a SPECIFICATION plus a CONFORMANCE SUITE that any evaluation harness runs against itself -- cheaper, more adoptable, no maintenance question, and it sidesteps the ownership problem. No earlier gate could have produced this finding.",
+    "cheating_channels_closed": [
+      {
+        "id": "CH-1",
+        "channel": "weak baseline",
+        "closure": "three tiers; primary is the strong one; BASELINE-C owned by an ADVOCATE who is not on the A-INT team and holds a veto (C-5)"
+      },
+      {
+        "id": "CH-2",
+        "channel": "defect authorship bias",
+        "closure": "E0-E3 authorship tiers; primary metric computed on E2 only; E0/E1 cannot support a CONTINUE"
+      },
+      {
+        "id": "CH-3",
+        "channel": "budget definition",
+        "closure": "three bases reported; equal-wall-clock primary because it PENALISES us (interventions cost runs detection could have used); equal-engineer-hours reported because it favours the baseline"
+      },
+      {
+        "id": "CH-4",
+        "channel": "information asymmetry",
+        "closure": "BASELINE-C receives the IDENTICAL package: factor model, ambient set, invariants, ground-truth access, intervention capability, and our five tools"
+      },
+      {
+        "id": "CH-5",
+        "channel": "metric selection",
+        "closure": "metrics frozen and digest-recorded BEFORE BASELINE-C is built"
+      },
+      {
+        "id": "CH-6",
+        "channel": "analysis flexibility",
+        "closure": "test, unit of analysis and n frozen before the run"
+      },
+      {
+        "id": "CH-7",
+        "channel": "integration tax placed on the baseline",
+        "closure": "the C1 tier exists precisely to carry it; see the_reframe"
+      }
+    ],
+    "statistical_findings": [
+      {
+        "id": "P1",
+        "finding": "THE PRIMARY TEST AS SPECIFIED CANNOT REACH SIGNIFICANCE. 6 E2 defects; our own pre-registered prediction is C1 detects 5 and A-INT detects 6 -- one discordant pair, exact McNemar p=1.0."
+      },
+      {
+        "id": "P2",
+        "finding": "12 cross-dimension defects is arithmetically inadequate: significance requires EVERY discordant defect to favour A-INT (d=6,k=6 -> p=0.031). At f=0.8, p=0.219. N=24 is the minimum tolerating a realistic 80% win rate (d=12,k=10 -> p=0.039). The brief's floor of 12 is raised to 24."
+      },
+      {
+        "id": "P3",
+        "finding": "Replication does not buy population power. 12 defects x 10 reps is ~13 effective observations at ICC 0.95, not 120. The DEFECT is the unit of analysis. Replications cut to 5."
+      },
+      {
+        "id": "P4",
+        "finding": "BASELINE-C C1 is approximately 3 weeks for one competent engineer. That is the number a multi-month build must beat."
+      },
+      {
+        "id": "P5",
+        "finding": "EVERY edge we predict is the falsification protocol, not the integration: decoy rejection (X-03/08/12/20), refusal on non-surgical cases (X-16), INSUFFICIENT_OBSERVABILITY instead of a guess (X-19), canary detection of unrecorded residue (X-06). C2 performs all of these by hand."
+      }
+    ],
+    "registry": "24 cross-dimension defects + 6 null controls. 6 externally authored (E2), 5 with decoys, 4 with unobserved variables, 6 requiring controlled intervention. N-06 is an externally authored VALID evaluation -- our own highest false-positive risk.",
+    "metrics": {
+      "primary": "CDDR -- cross-dimension detection rate, defect as unit, E2 population, A-INT vs C1, exact McNemar",
+      "secondary": [
+        "FAR (never reported without Indeterminate Rate -- FAR alone is gamed by always returning INDETERMINATE)",
+        "Indeterminate Rate",
+        "FDR on nulls",
+        "detection precision (decoys are the test)",
+        "detection recall",
+        "external-defect detection rate",
+        "experiment cost under all three budget bases",
+        "time to diagnosis",
+        "minimum detectable effect",
+        "route correctness -- was attribution supported by a recorded intervention"
+      ],
+      "no_composite": "There is no single evaluation-integrity score and none will be provided. A composite would be quoted without its components, and the components disagree in ways that matter."
+    },
+    "self_audit": "12 blind classes x 5 reps = 60 audits, including wrong statistical estimator and invalid multiple-testing assumption injected into the ENGINE'S OWN config. This project has already committed three of the catalogued defects in its own work: pooled FDR estimator (Gate 0.9), unearnable B-20 verdict (Gate 0.75), underpowered primary test (caught at this gate). The recursion terminates in human review; a pass means 'the ten mistakes we already know how to make are caught', not 'the engine is sound'.",
+    "blocking_decision": "THE E2 COMMISSION. The primary test on 6 E2 defects cannot reach significance under any realistic outcome. Option 1: commission 18 more E2 defects (total 24) -- recommended, converts the primary claim from unpowered to testable. Option 2: run and report the primary as a NON-RESULT. Option 3 (promote E1) and option 4 (lower alpha) are REJECTED. Do not freeze the pre-registration until option 1 or 2 is chosen explicitly and recorded."
+  },
+  "decision_criteria_0_95": {
+    "CONTINUE_requires_all_five": [
+      {
+        "id": "C-1",
+        "condition": "statistically defensible advantage over C1 on CDDR, E2 defects, exact McNemar p<0.05"
+      },
+      {
+        "id": "C-2",
+        "condition": "FAR not materially worse: upper bound of difference <0.10 at n=112/arm, reported JOINTLY with Indeterminate Rate; IR on defective packages not more than 0.15 above C1"
+      },
+      {
+        "id": "C-3",
+        "condition": ">=1 externally authored (E2) defect detected by A-INT and missed by C1"
+      },
+      {
+        "id": "C-4",
+        "condition": "self-audit passes: overall >=0.70, ALL FOUR deterministic classes at 1.00, >=1 of 2 config-injection classes, false alarms <=1/10"
+      },
+      {
+        "id": "C-5",
+        "condition": "the BASELINE-C advocate owner states IN WRITING that C1 met the strength floors and names no component they would now strengthen. THIS HAS A VETO over C-1."
+      }
+    ],
+    "KILL_any_one": [
+      {
+        "id": "K-1",
+        "condition": "A-INT statistically indistinguishable from C1 on CDDR over E2 (p>=0.05)"
+      },
+      {
+        "id": "K-2",
+        "condition": "advantage disappears when BASELINE-C is implemented competently (C-5 fails, or post-hoc strengthening erases the gap)"
+      },
+      {
+        "id": "K-3",
+        "condition": "FAR materially worse (lower bound of difference >0.10), OR Indeterminate Rate on defective packages >0.40 (a refusal machine regardless of FAR)"
+      },
+      {
+        "id": "K-4",
+        "condition": "advantage is significant on E0/E1 and absent on E2 -- the result depends on team-authored defects"
+      },
+      {
+        "id": "K-5",
+        "condition": "self-audit exposes a validity failure the architecture cannot detect: any deterministic class below 1.00, or both config-injection classes missed"
+      },
+      {
+        "id": "K-6",
+        "condition": "the E2 commission is declined and the primary is run underpowered anyway. FIRES WITHOUT RUNNING ANYTHING."
+      },
+      {
+        "id": "K-7",
+        "condition": "no workflow owner within the 60-day window, carried from Gate 0.9. FIRES WITHOUT RUNNING ANYTHING."
+      }
+    ],
+    "PIVOT_ambiguity_never_resolves_to_continue": [
+      {
+        "id": "P-1",
+        "condition": "A-INT > C1 but approximately equal to or worse than C2",
+        "target": "THE PROTOCOL IS THE CONTRIBUTION, NOT THE ENGINE. Ship IDENTIFIABILITY_AND_FALSIFICATION + VERDICT_SEMANTICS as a specification plus a conformance suite. Stop building a platform.",
+        "likelihood": "MOST LIKELY OUTCOME"
+      },
+      {
+        "id": "P-2",
+        "condition": "C-1 passes, C-3 fails",
+        "target": "narrow to the classes where an edge exists; commission E2 defects in exactly those classes before claiming anything"
+      },
+      {
+        "id": "P-3",
+        "condition": "C-1 passes on CDDR but fails CDDR-strict",
+        "target": "reposition from attribution to flagging"
+      },
+      {
+        "id": "P-4",
+        "condition": "all pass except C-4 config-injection classes",
+        "target": "keep the engine, drop every self-assurance claim, require external review of the engine's own statistics"
+      },
+      {
+        "id": "P-5",
+        "condition": "primary underpowered and option 2 chosen knowingly",
+        "target": "treat the run as descriptive; re-gate after the E2 commission"
+      }
+    ]
+  },
+  "pre_registered_prediction_0_95": {
+    "C-1": "FAIL as currently powered; passes only if the E2 commission happens (high confidence)",
+    "C-2": "PASS (medium-high)",
+    "C-3": "UNCERTAIN -- our own prediction table gives a one-defect margin (low confidence)",
+    "C-4": "PASS on deterministic classes; UNCERTAIN on config-injection (medium)",
+    "C-5": "the real risk -- we expect C1 to be strong",
+    "A-INT_vs_C2": "approximately equal to or worse than C2 (medium)",
+    "decision": "Row 6 -> PIVOT (P-1). Row 5 -> KILL is second most likely.",
+    "probability_of_clean_CONTINUE": "~15%, down from 35% at Gate 0.9 because specifying C2 honestly made the comparison harder -- which is what specifying it honestly was for."
+  },
+  "gate_0_95_recommendation": {
+    "recommendation": "PIVOT",
+    "basis": "Pre-analysis, before any run: (1) the primary test cannot reach significance on 6 E2 defects; (2) every edge we predict is the falsification protocol rather than the integration, and C2 performs all of it by hand; (3) BASELINE-C C1 is 3 weeks of work. The standing instruction resolves ambiguity to PIVOT, and this is ambiguous before it is even run.",
+    "pivot_target": "Ship the falsification protocol and verdict semantics as a SPECIFICATION plus a CONFORMANCE SUITE that any evaluation harness can run against itself. Do not build an engine until the engine is shown to beat a human executing the protocol.",
+    "do_not_freeze_until": "the E2 commission decision is made and recorded",
+    "two_free_kills_available_now": [
+      "K-6: decline the E2 commission and run underpowered anyway",
+      "K-7: no workflow owner within 60 days"
+    ]
   }
 }
