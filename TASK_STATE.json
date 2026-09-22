@@ -1,10 +1,10 @@
 {
-  "schema_version": "0.6.0",
-  "project": "agent-evaluation-assurance",
+  "schema_version": "1.0.0",
+  "project": "agent-evaluation-assurance (TERMINATED)",
   "working_title": "Agent Evaluation Assurance",
   "generated_at": "2026-09-22",
-  "current_gate": "GATE_1_0_PRODUCT_THESIS",
-  "gate_status": "PRODUCT_THESIS_FROZEN_AS_RESEARCH_HYPOTHESIS_NO_BENCHMARK_NO_E2_COMMISSION",
+  "current_gate": "GATE_1_1_DIFFERENTIATION_EXCAVATION",
+  "gate_status": "TERMINAL -- product line closed, no replacement thesis nominated",
   "implementation_authorized": false,
   "pivot": {
     "supersedes": "0.1.0 \u2014 runtime assurance / unknown side-effect adjudication as product thesis",
@@ -230,6 +230,31 @@
     },
     {
       "path": "docs/COMPETITIVE_2026.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/CURRENT_THESIS_TERMINATION.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/COMPETITIVE_GAP_MATRIX.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/INTERVENTION_NOVELTY_REVIEW.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/CANDIDATE_PROBLEM_SPACE.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/GATE_1_1_VERDICT.md",
       "state": "NEW",
       "version": "0.1.0"
     }
@@ -1059,7 +1084,7 @@
     "reduction_50_failures": "13-27 hours",
     "note": "A screen that finds more failures makes the run SLOWER. Planning capacity without reduction capacity produces a backlog, not results."
   },
-  "next_action": "Do NOT commission E2 defects. Do NOT run any benchmark. Do NOT write code. Three cheap actions first, any of which can end the project: (1) read the Sept 2026 survey (OQ-24); (2) measure one real team's annual package volume (OQ-25); (3) build and time ONE adapter against ONE real third-party evaluation framework (OQ-27 / column F). Then re-enter the decision tree. implementation_authorized remains false.",
+  "next_action": "None. The product line is closed and no replacement is nominated. If revisited, start with R1: verify MQ-EVA directly rather than re-reading these documents.",
   "research_validity_challenge": {
     "thesis_under_test": "Failures in tool-using AI agents emerge from interactions between agent decisions, execution history, environment state, tool semantics, context state, authorization state and runtime conditions; a useful system discovers, characterizes, reduces and regression-tests them.",
     "falsifiable_form": "T*: there exists a class F of failures such that each requires >=2 simultaneously-active conditions from distinct layers; is not found by single-factor sweeps at equal budget; is NOT found by uniform random sampling plus interaction regression at equal budget; is characterizable with decoys excluded; and is non-empty for agents we did not write under dimensions we did not choose.",
@@ -1843,5 +1868,231 @@
       "OQ-27/column F: build ONE adapter against ONE real third-party evaluation framework and time it. If per-framework cost is high, the user chosen for frequency is the user whose setup cost scales with the same variable, and the economics invert."
     ],
     "why_not_the_E2_commission_yet": "20 external defects are the most expensive item in the plan and they only matter if the economics survive. Column F can invalidate the economics for a few days of work."
+  },
+  "thesis_status": "KILLED",
+  "termination": {
+    "status": "KILLED -- not pivoted, not paused, not deferred",
+    "date": "2026-09-22",
+    "trigger": "OQ-24 returned MQ-EVA (Maple Quanta Evaluation Assurance), an existing public 2026 system overlapping T1.0 across 14 of 14 evaluation-validity capabilities -- including BOTH properties COMPETITIVE_2026 section 4.2 had reduced our entire claim to.",
+    "the_two_rows_that_ended_it": [
+      "Unsupported vs Contradicted semantics -- our 'negative' property, and FINER than ours. Ours was SUPPORTED/NOT_SUPPORTED/UNDETERMINED; separating 'evidence does not support' from 'evidence contradicts' is a distinction we never drew. They are ahead of us on the axis we called our differentiation.",
+      "Deterministic derivation of assurance results -- our 'earned' property, the answer to 'anyone can emit unsupported:true'. Emitted by something that already exists."
+    ],
+    "epistemic_status_of_trigger": "ASSERTED_UNVERIFIED. I cannot independently verify MQ-EVA; my knowledge ends before its reported publication. If this termination is revisited, VERIFY MQ-EVA DIRECTLY FIRST -- it is the only unverified fact the termination touches and checking costs an afternoon.",
+    "kill_is_overdetermined": "Does NOT rest on MQ-EVA. Before OQ-24: 8 of 11 workflow steps already solved externally; differentiation already reduced from a capability to a cost point; economics contingent on two unmeasured numbers; column F capable of inverting them (the variable supplying frequency is the variable supplying setup cost); primary test unable to reach significance on 6 E2 defects; correctness advantage over C2 predicted ZERO by us; no owner across three gates; pre-registered P(clean CONTINUE) ~15%. Conditions 3, 4 and 7 were each independently sufficient.",
+    "retraction": "Gate 1.0 concluded the conformance suite 'survives a KILL'. RETRACTED. A specification competes on adoption, and adoption goes to the party with an implementation and a public methodology. Publishing a competing standard against an implemented one, with no users and no institutional position, is not a research contribution. The argument was right in general and wrong here -- wrong because it was written before OQ-24 returned."
+  },
+  "competitive_gap_matrix": {
+    "rule": "NOT classified D merely because no single product combines it. If constructible straightforwardly by composing mature methods -> COMPOSITION, which is not a thesis. Test: could a competent engineer who knows the constituent methods BUILD it in weeks rather than INVENT it?",
+    "capabilities_examined": 40,
+    "tally": {
+      "A_solved_externally": 26,
+      "B_partially_solved": 1,
+      "C_adjacent": 0,
+      "COMPOSITION": 12,
+      "D_genuinely_missing": 1
+    },
+    "share": {
+      "A": "65%",
+      "COMPOSITION": "30%",
+      "D": "2.5% (thin, not a product)"
+    },
+    "the_single_D": {
+      "id": "#40",
+      "name": "intervention reachability as a computed system property",
+      "definition": "Determine which of a system's variables can be SURGICALLY intervened on -- set independently without perturbing others -- and expose it as a computed property prior to any investigation. Every verdict our design could reach was determined by this, and nothing surveyed computes it: systems assume intervention is available (chaos, A/B, DOE) or assume it is not (observational causal inference). The boundary is treated as background.",
+      "why_thin": [
+        "for most systems the answer is 'read the config schema'",
+        "surgicality is checkable only against RECORDED variables, inheriting every instrumentation limit",
+        "a PROPERTY, not a workflow: no trigger event, no owner, no budget line -- the same K-7 unanswered for three gates",
+        "structural identifiability and optimal experiment design are mature; applying them here is COMPOSITION under our own rule"
+      ],
+      "verdict": "genuine conceptual gap, classified D honestly, NOT a product"
+    },
+    "narrowing_sequence": [
+      "Gate 0 runtime assurance -> solved elsewhere",
+      "Gate 0.5 interaction discovery -> covering arrays worth 1.7x over random",
+      "Gate 0.75 factor-model adequacy -> residual diagnostics, established",
+      "Gate 0.9 evaluation-integrity auditing -> 5 of 5 dimensions have mature analogues",
+      "Gate 0.95 cross-dimension vs composition -> C1 is 3 weeks of work",
+      "Gate 1.0 automation of a known capability -> a cost point contingent on frequency",
+      "Gate 1.1 the cost point -> MQ-EVA occupies it"
+    ],
+    "process_lesson": "Seven gates, monotonic narrowing, never a widening. A claim that narrows at three consecutive adversarial gates without once widening is being progressively falsified, and the SHAPE of the sequence is evidence before the endpoint. Stop at the third and ask what is left rather than running to exhaustion. We ran to exhaustion: the artifacts are better for it, the calendar is not."
+  },
+  "intervention_novelty_review": {
+    "idea": "controlled intervention before causal attribution, then explicit refusal when identification is impossible",
+    "verdict": "NOT NOVEL",
+    "components": {
+      "N1": "intervene rather than observe before attributing",
+      "N2": "refuse when the discriminating intervention is unavailable",
+      "N3": "emit the refusal as a typed machine-consumable status with its derivation"
+    },
+    "by_domain": {
+      "causal_inference": "N1 is the FOUNDING distinction of the field. N2 is a named formal result -- non-identifiability is an OUTPUT of the theory. Our B-20 error was rediscovering it the hard way: not a contribution, a demonstration we had not applied established theory.",
+      "AI_assurance": "Assurance/safety cases (GSN, CAE) have had claim-argument-evidence with explicit DEFEATERS including evidence insufficiency for ~30 years. MQ-EVA's Unsupported vs Contradicted IS an assurance-case distinction applied to AI evaluation, and finer than ours because the practice already distinguishes unsupported from rebutted. We reinvented the coarser half.",
+      "scientific_experiment_automation": "Autonomous hypothesis -> experiment design -> falsification loops with active selection of the most discriminating next experiment, demonstrated early 2000s. Closest match to our whole protocol and ~20 years older.",
+      "fault_localization": "N1 established (delta debugging is interventional by construction). N2 partial.",
+      "causal_debugging_for_software": "N1 established and named; N2 inherited from the causal framing.",
+      "experiment_infrastructure": "N1 industrialised (A/B platforms). N2 partial.",
+      "observability": "N1 partial (mostly observational), N2 WEAK (ranking, not refusing) -- the nearest thing to a gap in the review.",
+      "agent_evaluation": "N1/N2/N3 now covered by AgentChaos-class + MQ-EVA."
+    },
+    "composite_not_novel_either": "Causal inference supplies N1+N2 formally; assurance cases supply N2+N3 in practice; automated experimentation supplies N1+N2 as a running loop. Each domain holds a majority of the composite; MQ-EVA holds all three in our domain.",
+    "conclusion": "This project applied established methods correctly. That has value -- the four self-inflicted defects show how easily even a project built around these methods violates them. But rigor in applying known methods is not a thesis and not a product."
+  },
+  "candidate_problem_space": {
+    "candidates_examined": 5,
+    "P-1": {
+      "name": "intervention reachability as a computed property",
+      "verdict": "REJECTED",
+      "why": "a property not a workflow; no owner; COMPOSITION under our own rule",
+      "reexamine_if": "a named team states they cannot A/B-test something and do not know why -- an anecdote, not a market"
+    },
+    "P-2": {
+      "name": "instrumentation gap analysis -- what would I need to record to tell these apart?",
+      "verdict": "REJECTED, strongest residual regret",
+      "why": [
+        "COMPOSITION: structural identifiability and optimal experiment design are mature; porting to observability is application",
+        "it REQUIRES a causal graph of the system, which nobody has -- the candidate assumes away its own difficulty",
+        "I cannot verify the 2026 state of observability tooling; claiming an unverifiable gap would repeat the exact error that produced five gates of narrowing"
+      ],
+      "reexamine_if": "a verified survey shows no 2026 causal-RCA tool performs identifiability analysis AND a named team commits to using it"
+    },
+    "P-3": {
+      "name": "statistical-validity linting for analysis code",
+      "verdict": "REJECTED",
+      "why": "statcheck and automated statistical-error-detection work exist; narrow; audience has no budget; close to 'another evaluator' which is auto-rejected. The OBSERVATION behind it is valuable; the TOOL is not."
+    },
+    "P-4": {
+      "name": "deterministic replay with live external dependencies",
+      "verdict": "REJECTED IMMEDIATELY",
+      "why": "deterministic simulation testing owns it with a stronger story (they control the scheduler; Gate 0.5 established we do not)"
+    },
+    "P-5": {
+      "name": "evidence provenance for AI claims",
+      "verdict": "REJECTED IMMEDIATELY",
+      "why": "attestation/provenance mature; MQ-EVA covers the evaluation-specific case"
+    }
+  },
+  "deepest_recurring_problem_audit": {
+    "method": "For each candidate ask: why is this not already a solved engineering problem? A weak answer is a rejection.",
+    "results": [
+      {
+        "candidate": "non-identifiability",
+        "answer": "it IS solved, formally, in causal inference; the gap is application discipline",
+        "strength": "WEAK"
+      },
+      {
+        "candidate": "confounding",
+        "answer": "solved: DOE, randomisation, causal inference",
+        "strength": "WEAK"
+      },
+      {
+        "candidate": "evidence provenance",
+        "answer": "largely solved: attestation, provenance graphs, assurance cases",
+        "strength": "WEAK"
+      },
+      {
+        "candidate": "experiment validity",
+        "answer": "a surveyed field with an implemented system",
+        "strength": "WEAK"
+      },
+      {
+        "candidate": "intervention reachability",
+        "answer": "not named as an engineering property anywhere surveyed",
+        "strength": "MODERATE -- but reduces to 'is the config settable' in most cases"
+      },
+      {
+        "candidate": "model misspecification",
+        "answer": "solved in statistics; diagnostics mature",
+        "strength": "WEAK"
+      },
+      {
+        "candidate": "hidden state",
+        "answer": "the general problem is undecidable; specific instances are ordinary engineering",
+        "strength": "WEAK -- undecidability is not a market"
+      },
+      {
+        "candidate": "observability limits",
+        "answer": "partly the same as identifiability; causal-graph construction is the real obstacle, unsolved because HARD not neglected",
+        "strength": "MODERATE"
+      },
+      {
+        "candidate": "evaluation gaming",
+        "answer": "NIST documents it; MQ-EVA detects it",
+        "strength": "WEAK"
+      }
+    ],
+    "tally": "9 candidates: 7 weak, 2 moderate, 0 strong. ALL REJECTED.",
+    "pattern": "Every 'deepest problem' has the same shape: the THEORY IS MATURE and the gap is that practitioners do not apply it. The gap is discipline, not technique. A discipline gap is closed by a specification, a checklist or a paper -- not an engine -- and the specification position in this domain is occupied."
+  },
+  "intellectual_content_audit": {
+    "question": "What across five gates was actually technically deep?",
+    "finding": "NOTHING. Everything was the correct application of standard methods. Covering-array arithmetic, clustering correction, the identifiability trap (which we got WRONG first), C0/C1/C2 tiering, frequency thresholds, the required-n catch (a PROCESS failure, not a technical problem), residual diagnostics -- all standard. Only the zero-unfavourable-discordance substitution was mildly original, and it is a sensible choice under a power constraint, not a contribution.",
+    "consequence": "The intellectual content of this project was RIGOR, and rigor is not a product. This applies to every candidate: each that survived screening failed because the hard part was already solved by someone else and the remaining part was discipline."
+  },
+  "four_self_inflicted_defects": [
+    {
+      "gate": "0.75",
+      "defect": "NON-IDENTIFIABLE REQUIREMENT -- B-20 demanded UNKNOWN_MODEL for an unobserved mechanism with a correlated decoy (observationally impossible), made it the hard kill gate, and scored correct behaviour as catastrophic",
+      "caught_by": "re-deriving the identifiability condition"
+    },
+    {
+      "gate": "0.9",
+      "defect": "BIASED ESTIMATOR -- FDR as pooled sum(V)/sum(R), reporting that BH fails under dependence. It does not.",
+      "caught_by": "re-deriving the estimator"
+    },
+    {
+      "gate": "0.95",
+      "defect": "UNDERPOWERED PRIMARY -- the headline test ran on 6 E2 defects and could not reach significance under any realistic outcome",
+      "caught_by": "computing exact McNemar before the run"
+    },
+    {
+      "gate": "1.0",
+      "defect": "REQUIRED-N CITED AS AVAILABLE-N -- n=112 was the size NEEDED for MDE 0.15; the experiment had ~29",
+      "caught_by": "recomputing the denominator"
+    }
+  ],
+  "four_defects_significance": "A project explicitly built to detect invalid evaluations produced four invalid evaluations of its own, in its own decision instruments, under adversarial review, across five gates. Strongest empirical evidence the project generated for the reality of the defect class -- and simultaneously an argument AGAINST the product, because each was caught by a person choosing to check the arithmetic, not by tooling.",
+  "gate_1_1_verdict": {
+    "outcome": "B -- research finding with no defensible product thesis; consequently C for the product line: permanently closed",
+    "replacement_thesis": "NONE NOMINATED",
+    "why_no_replacement": "Nominating P-2 would be generating a replacement to avoid a kill, which the brief forbids and which would be the fifth self-inflicted validity defect in a project already carrying four.",
+    "genuinely_deep_problem_remaining": false,
+    "worth_restarting_around": false,
+    "repository": "PRESERVED as research lineage"
+  },
+  "preserved_reusable_findings": [
+    "Four-defect catalogue with the arithmetic that caught each",
+    "C0/C1/C2 baseline tiering -- the single most transferable pattern; for anyone asking 'does my tool beat a competent composition?'",
+    "Covering-array vs random: 1.7x at 99% pairwise coverage, not 1e5x",
+    "Frequency-derived automation thresholds: ~32 packages/yr maintenance break-even, ~215 cumulative payback",
+    "Required-n vs available-n error pattern",
+    "47 gate artifacts, dated, with pre-registered predictions recorded before outcomes -- a case study in a thesis narrowing to nothing under honest review"
+  ],
+  "reopen_conditions": [
+    {
+      "id": "R1",
+      "condition": "MQ-EVA verified not to exist or materially weaker than reported. Gate 1.0's conditional (B) returns -- still gated on OQ-25 volume and OQ-27 adapter cost, both already capable of killing it.",
+      "priority": "CHECK FIRST -- the only unverified fact the termination touches"
+    },
+    {
+      "id": "R2",
+      "condition": "A verified 2026 survey shows no causal-RCA tool performs identifiability analysis, AND a named team commits to using it (P-2)."
+    },
+    {
+      "id": "R3",
+      "condition": "A named owner with a measured >=150 evaluation packages/year and a programmatic release gate. This was K-7, unanswered across three gates."
+    }
+  ],
+  "final_state": {
+    "product_line": "CLOSED",
+    "thesis": "KILLED (not pivoted)",
+    "replacement_thesis": "NONE",
+    "repository": "PRESERVED",
+    "implementation_authorized": false,
+    "implementation_authorized_ever": false,
+    "application_code_written": "0 lines across seven gates"
   }
 }
