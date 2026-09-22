@@ -1,10 +1,10 @@
 {
-  "schema_version": "0.3.0",
-  "project": "agent-reliability-experiment-engine",
-  "working_title": "Agent Failure Laboratory",
+  "schema_version": "0.4.0",
+  "project": "agent-evaluation-integrity-engine",
+  "working_title": "Agent Evaluation Integrity Engine",
   "generated_at": "2026-09-22",
-  "current_gate": "GATE_0_75_RESEARCH_VALIDITY",
-  "gate_status": "VALIDITY_CHALLENGE_COMPLETE_PENDING_BENCHMARK_RUN",
+  "current_gate": "GATE_0_9_EVALUATION_INTEGRITY",
+  "gate_status": "VALIDITY_CORRECTION_COMPLETE_PENDING_BENCHMARK_V2_RUN",
   "implementation_authorized": false,
   "pivot": {
     "supersedes": "0.1.0 \u2014 runtime assurance / unknown side-effect adjudication as product thesis",
@@ -110,6 +110,51 @@
     },
     {
       "path": "docs/CONTINUE_OR_KILL.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/GATE_0_9_RESEARCH_VALIDITY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/EVALUATION_INTEGRITY_MODEL.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/IDENTIFIABILITY_AND_FALSIFICATION.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/ORACLE_INTEGRITY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/ENVIRONMENT_CONFOUNDER_MODEL.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/STATISTICAL_VALIDITY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/VERDICT_SEMANTICS.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/BENCHMARK_V2.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/CONTINUE_OR_KILL_V2.md",
       "state": "NEW",
       "version": "0.1.0"
     }
@@ -907,7 +952,7 @@
     "reduction_50_failures": "13-27 hours",
     "note": "A screen that finds more failures makes the run SLOWER. Planning capacity without reduction capacity produces a backlog, not results."
   },
-  "next_action": "Do not begin Gate 1. Build ONLY the benchmark (sealed registry, 22 mechanisms, independently authored per R4) and run the decision. It costs zero remote inference and 2-3 days of compute against a build estimated in months. Answer OQ-16 (does a local model exist?) first -- if not, K4 is unmitigable and the decision is already made.",
+  "next_action": "Do not build the platform. Build BASELINE-C honestly and the 27-case sealed benchmark, then run K-A. Answer OQ-16 (local model availability) and start the K-F 60-day ownership clock TODAY -- both are free and either can end the project without any engineering.",
   "research_validity_challenge": {
     "thesis_under_test": "Failures in tool-using AI agents emerge from interactions between agent decisions, execution history, environment state, tool semantics, context state, authorization state and runtime conditions; a useful system discovers, characterizes, reduces and regression-tests them.",
     "falsifiable_form": "T*: there exists a class F of failures such that each requires >=2 simultaneously-active conditions from distinct layers; is not found by single-factor sweeps at equal budget; is NOT found by uniform random sampling plus interaction regression at equal budget; is characterizable with decoys excluded; and is non-empty for agents we did not write under dimensions we did not choose.",
@@ -1092,5 +1137,213 @@
     "rework_cost": "LOW. Same factor model, same oracles, same Phase-3 design, same substrate. What changes is the headline claim, what the benchmark measures, and the demotion of covering arrays from thesis to default.",
     "highest_information_experiment": "Benchmark cases B-19 and B-20 (ABSENT_UNRECORDED, with and without a correlated decoy), 10 replications each, scored against arm A2 at equal trial budget.",
     "explicit_kill_criterion": "CMR > 0.20 on B-19/B-20 -- the system attributes an unobservable mechanism to a declared factor in more than 1 in 5 cases. Unconditional, no override."
+  },
+  "gate_0_9": {
+    "epistemic_flaw_corrected": "Gate 0.75 case B-20 required UNKNOWN_MODEL for an unobserved mechanism with a visible decoy correlated at 0.7. Those two causal structures are OBSERVATIONALLY EQUIVALENT: no estimator separates them. The benchmark demanded an unearnable verdict and scored the method's CORRECT behaviour (naming the decoy as a candidate) as catastrophic, then made it the hard kill criterion. We shipped an invalid evaluation into our own kill gate and it survived three adversarial passes.",
+    "fix": "Controlled falsification. Intervene on the decoy; if the failure persists the decoy is falsified as sufficient. INSUFFICIENT_OBSERVABILITY is reachable ONLY after every observable candidate has been falsified by intervention. If intervention is unavailable or non-surgical the verdict is INCONCLUSIVE, which is a different and weaker claim.",
+    "thesis_under_test": "T**: there exists a class D of evaluation-integrity defects such that (a) each causes the eval to measure something other than the intended capability; (b) each is detectable by a specifiable deterministic test, statistical test or controlled intervention; (c) A NAIVE COMPOSITION OF EXISTING SINGLE-PURPOSE TOOLS MISSES A MATERIALLY LARGE SHARE OF D; (d) non-identifiable candidates are falsified by intervention or returned as INCONCLUSIVE; (e) D occurs in evaluations we did not author. (c) IS THE WHOLE THESIS -- a,b,d,e are all satisfiable by the baseline.",
+    "five_dimensions_all_have_mature_analogues": [
+      {
+        "dimension": "ORACLE_VALIDITY",
+        "analogue": "mutation testing (1970s; PIT, mutmut, Stryker)",
+        "maturity": "very high",
+        "our_adaptation": "mutate the effect log, not source -- a stochastic policy has no meaningful source mutants"
+      },
+      {
+        "dimension": "REPRODUCIBILITY_VALIDITY",
+        "analogue": "flaky-test detection infrastructure; ML/RL seed-variance analysis",
+        "maturity": "very high",
+        "our_adaptation": "agent stochasticity is intended, so the question is whether the RATE is stable"
+      },
+      {
+        "dimension": "ANTI_CHEATING",
+        "analogue": "contamination detection (n-gram, canaries, membership inference); reward-hacking literature; NIST documentation",
+        "maturity": "high",
+        "our_adaptation": "trajectory-level cheating paths are the narrowest genuine gap"
+      },
+      {
+        "dimension": "ENVIRONMENT_VALIDITY",
+        "analogue": "hermetic build/test systems (Bazel, Nix); confounder detection; Microsoft hidden-env-var documentation",
+        "maturity": "very high",
+        "our_adaptation": "agent evals cannot be hermetic, so hermeticity becomes a measurement"
+      },
+      {
+        "dimension": "FACTOR_SPACE_VALIDITY",
+        "analogue": "residual diagnostics, DOE, construct-validity literature",
+        "maturity": "high",
+        "our_adaptation": "none methodologically"
+      }
+    ],
+    "baseline_to_beat": "BASELINE-C = effect-level mutation testing + repeated-seed variance analysis + canary/contamination scanning + environment-manifest diffing + logistic residual regression, run INDEPENDENTLY and unioned. Assemblable by a competent engineer in 1-3 weeks.",
+    "minimum_viable_differentiated_capability": "Detect evaluation-integrity defects arising from interactions BETWEEN integrity dimensions, which BASELINE-C misses when its components run independently -- and, for any candidate that is not observationally identifiable, falsify it by controlled intervention or return INCONCLUSIVE.",
+    "adjacent_systems_from_brief": [
+      {
+        "name": "Microsoft Research AgentRx",
+        "does": "automated trajectory diagnosis",
+        "relation": "diagnoses the AGENT; we audit the EVALUATION. Different object, one feature from overlapping.",
+        "label": "ASSERTED_UNVERIFIED"
+      },
+      {
+        "name": "AgentChaos-like systems",
+        "does": "agent fault injection",
+        "relation": "supplies the intervention mechanism. Consume, do not rebuild.",
+        "label": "ASSERTED_UNVERIFIED"
+      },
+      {
+        "name": "NIST evaluation-cheating documentation",
+        "does": "names solution contamination and grader gaming",
+        "relation": "institutional recognition of the problem: raises legitimacy, lowers novelty-of-problem.",
+        "label": "ASSERTED_UNVERIFIED"
+      },
+      {
+        "name": "Microsoft hidden-environment-variable findings",
+        "does": "documents env vars changing agent eval results",
+        "relation": "confirms ENVIRONMENT_VALIDITY matters and that others are already looking.",
+        "label": "ASSERTED_UNVERIFIED"
+      }
+    ],
+    "banned_reasoning": "'Nobody has built this' is INVALID. Absence of an identical product is evidence about markets, not importance. Survival requires: technically nontrivial, empirically measurable, useful to a real workflow, HARD TO REPRODUCE BY COMPOSING EXISTING TOOLS, worth maintaining after the demo."
+  },
+  "verdict_vocabulary": {
+    "SUPPORTED_WITHIN_TESTED_SPACE": "explanation survived controlled intervention, within tested levels/observables/power. Requires the intervention record.",
+    "PARTIALLY_SUPPORTED": "survived intervention but a residual above the floor remains; nested verdict on the remainder.",
+    "MODEL_GAP_DETECTED": "an observable outside the declared factor model associates with the residual. OBSERVATIONAL_ASSOCIATION only; no intervention claimed.",
+    "INSUFFICIENT_OBSERVABILITY": "EVERY observable candidate falsified by intervention, effect survives, observability inventory complete, zero untested candidates.",
+    "INCONCLUSIVE": "the discriminating experiment was not performed. Reason from a closed enum: NOT_SETTABLE | NON_SURGICAL | UNDERPOWERED | BUDGET_EXHAUSTED | UNSAFE. THE DEFAULT VERDICT.",
+    "INVALID_EVALUATION": "an integrity defect makes the result untrustworthy regardless of agent behaviour. DOMINATES: affected results are WITHHELD, not caveated.",
+    "removed": [
+      "EXPLAINED (smuggles completeness)",
+      "UNEXPLAINED (ambiguous)",
+      "UNKNOWN_MODEL (conflated 'experiments came back negative' with 'we did not run them')"
+    ]
+  },
+  "evidence_kinds": [
+    "OBSERVATIONAL_ASSOCIATION",
+    "CONTROLLED_INTERVENTION",
+    "FALSIFICATION",
+    "INDETERMINATE"
+  ],
+  "statistical_audit_results": {
+    "method": "1500 simulations, m=126, q=alpha=0.05, FDR = mean per-simulation V/R",
+    "conditions": [
+      "independent",
+      "correlated blocks rho=0.5",
+      "temporal AR(1) rho=0.8",
+      "factor aliasing rho=0.95",
+      "repeated trials rho=0.99"
+    ],
+    "BH": "controls FDR at 0.036-0.061 under ALL five structures. Power 0.35 at z=3, 0.75 at z=4. RETAINED as default.",
+    "BY": "FDR 0.007-0.017 (4-6x conservative), power roughly HALVED (0.19 vs 0.35 at z=3). NO evidence for adopting it.",
+    "WY_maxT_permutation": "controls FWER at ~0.055 everywhere; power between BY and BH EXCEPT under near-duplicate tests where it BEATS BH (0.49 vs 0.40 at z=3). Adopted for the aliased/duplicate sub-family only.",
+    "power_floor_OQ22_resolved": "z~4 needed for power 0.75. delta=0.10 costs ~1340 trials per cell (45 min). Below delta~0.08 nothing is affordably detectable at any n.",
+    "family_shrinking": "Screening on VARIANCE ONLY (which dimensions actually varied), recorded with its digest BEFORE any association is computed, cuts the family from 126 to ~36 -- a 3.5x power gain worth more than any choice among the three methods.",
+    "self_caught_error": "The first run pooled Sum(V)/Sum(R) and reported BH FDR at 0.126-0.265 under dependence, appearing to show BH fails. That estimator is biased. Corrected, BH controls. Reported rather than patched: an analysis that looked rigorous and was wrong for a reason invisible in its output."
+  },
+  "decision_criteria_v2": [
+    {
+      "id": "K-A",
+      "name": "composed-baseline gap (THE PROJECT)",
+      "n": "270 paired, 27 cross-dimension",
+      "mde": "+/-0.050 overall, +/-0.16 cross-dimension",
+      "power": "29 discordant pairs at psi=3 for power 0.80",
+      "kill": "BASELINE-C/A-INT >= 0.80 overall, OR cross-dimension gap <= 0.20",
+      "note": "3 cross-dimension cases at 10 reps resolves 'clear gap' from 'no gap' and nothing finer. Raising them from 3 to 12 halves the interval and is the cheapest improvement to this instrument."
+    },
+    {
+      "id": "K-B",
+      "name": "falsification correctness",
+      "n": 60,
+      "mde": "distinguishes 0.05 from 0.25",
+      "power": "<=4/60 errors gives upper bound 0.159 < 0.20",
+      "kill": "unearned-attribution OR unearned-refusal upper bound > 0.20",
+      "note": "scores the ROUTE, not only the answer. Replaces the unearnable Gate 0.75 CMR criterion."
+    },
+    {
+      "id": "K-C",
+      "name": "oracle-validity instrument",
+      "n": "63 mutants x 9 oracles = 567",
+      "mde": "0.20 in mutation score",
+      "power": "63 mutants distinguishes 0.90 from 0.70 at power 0.80; 0.10 resolution needs 200",
+      "kill": "none -- failure deletes the oracle contribution only"
+    },
+    {
+      "id": "K-D",
+      "name": "substrate transfer",
+      "n": 30,
+      "mde": "separates >=0.92 from <=0.66",
+      "power": "30/30 -> lower bound 0.92; 24/30 -> 0.66",
+      "kill": "yield < 0.30, or no local model exists (OQ-16)"
+    },
+    {
+      "id": "K-E",
+      "name": "false-alarm rate on VALID evaluations",
+      "n": 40,
+      "mde": "0/40 -> upper bound 0.088",
+      "power": "2/40 -> 0.165",
+      "kill": "upper bound > 0.25",
+      "note": "an audit that fires on valid evaluations trains its users to ignore it, while appearing rigorous"
+    },
+    {
+      "id": "K-F",
+      "name": "workflow ownership",
+      "n": "60 days",
+      "kill": "no named owner",
+      "note": "non-technical, unfixable by engineering, footnoted in every prior gate. Promoted to a kill criterion so it gets TESTED rather than noted."
+    }
+  ],
+  "decision_rule_v2": [
+    {
+      "order": 1,
+      "condition": "K-E FAIL",
+      "decision": "HALT"
+    },
+    {
+      "order": 2,
+      "condition": "K-A FAIL",
+      "decision": "KILL -- T**(c) fails; write up the composition and stop"
+    },
+    {
+      "order": 3,
+      "condition": "K-B FAIL",
+      "decision": "KILL -- reproduces the error it exists to prevent"
+    },
+    {
+      "order": 4,
+      "condition": "K-D FAIL",
+      "decision": "KILL, or PIVOT to runtime-only if an owner exists"
+    },
+    {
+      "order": 5,
+      "condition": "K-F FAIL after 60 days",
+      "decision": "KILL"
+    },
+    {
+      "order": 6,
+      "condition": "K-A PASS, K-B PASS, K-C FAIL",
+      "decision": "PIVOT -- drop the oracle contribution"
+    },
+    {
+      "order": 7,
+      "condition": "all PASS",
+      "decision": "CONTINUE, scoped to the MVDC only"
+    }
+  ],
+  "pre_registered_prediction_v2": {
+    "K-E": "PASS (high)",
+    "K-C": "PASS (high)",
+    "K-B": "PASS (medium -- refusal is harder to engineer than attribution)",
+    "K-D": "UNKNOWN (genuinely open)",
+    "K-A": "~35% chance of PASS",
+    "K-F": "UNKNOWN and pessimistic",
+    "most_likely_outcome": "Row 2 (KILL) is the single most likely outcome; row 7 (CONTINUE, MVDC-scoped) is second.",
+    "why_35_percent": "Cross-dimension defects must be both constructible AND genuinely invisible to five independent tools. The most likely failure is mundane: BASELINE-C's residual-regression component picks up the environment x oracle interaction as an ordinary association and the gap collapses."
+  },
+  "gate_0_9_recommendation": {
+    "recommendation": "PIVOT",
+    "scope": "Narrow to the MVDC: cross-dimension integrity defects plus the falsification protocol. Do NOT build the five-dimension platform.",
+    "build_order": "Build BASELINE-C and the 27-case benchmark FIRST. The baseline is the experiment, not a comparison run afterwards.",
+    "highest_information_experiment": "Cases V2-25/26/27 (cross-dimension) against BASELINE-C at equal budget, 10 replications each -- ideally 12 cases rather than 3, which halves the confidence interval.",
+    "exact_kill_criterion": "detection(BASELINE-C) / detection(A-INT) >= 0.80 overall, OR cross-dimension gap <= 0.20. Either fires KILL.",
+    "remaining_thesis": "Evaluation-integrity defects spanning two integrity dimensions escape five mature single-purpose tools run independently, and a falsification-disciplined audit that refuses to attribute when intervention is unavailable catches them."
   }
 }
