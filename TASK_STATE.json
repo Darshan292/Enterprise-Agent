@@ -1,10 +1,10 @@
 {
-  "schema_version": "0.5.0",
+  "schema_version": "0.6.0",
   "project": "agent-evaluation-assurance",
   "working_title": "Agent Evaluation Assurance",
   "generated_at": "2026-09-22",
-  "current_gate": "GATE_0_95_BASELINE_CHALLENGE",
-  "gate_status": "PROTOCOL_DRAFTED_NOT_FROZEN_BENCHMARK_NOT_RUN",
+  "current_gate": "GATE_1_0_PRODUCT_THESIS",
+  "gate_status": "PRODUCT_THESIS_FROZEN_AS_RESEARCH_HYPOTHESIS_NO_BENCHMARK_NO_E2_COMMISSION",
   "implementation_authorized": false,
   "pivot": {
     "supersedes": "0.1.0 \u2014 runtime assurance / unknown side-effect adjudication as product thesis",
@@ -190,6 +190,46 @@
     },
     {
       "path": "docs/KILL_CONTINUE_0_95.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/GATE_1_0_PRODUCT_THESIS.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/PRIMARY_USER_AND_WORKFLOW.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/PRODUCT_INTERFACE.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/AUTOMATION_UTILITY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/STATISTICAL_CORRECTIONS.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/BASELINE_ADJUDICATION.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/E2_AUTHORSHIP_PLAN.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/COMPETITIVE_2026.md",
       "state": "NEW",
       "version": "0.1.0"
     }
@@ -842,6 +882,38 @@
       "severity": "MEDIUM",
       "resolution_method": "Hold out 30% of L-STO trajectories from any tuning.",
       "owner": "unassigned"
+    },
+    {
+      "id": "OQ-24",
+      "question": "The September 2026 systematic survey on validity-centered agent evaluation has NOT been read. A survey means the field has a name and an enumerated open-problems list -- the correct place to check whether our remaining claim is already named, or already solved. READING IT COULD CLOSE THIS PROJECT IN AN AFTERNOON and costs less than any other available action.",
+      "blocks": "GATE_1_0 exit criterion 10",
+      "severity": "BLOCKING",
+      "resolution_method": "Read the survey. Map its open-problems list against COMPETITIVE_2026 section 4.2.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-25",
+      "question": "MEASURED annual evaluation-package volume for one named candidate user. Decides decision-tree row 6 and thesis clause (e). Below ~32/yr the engine is a liability; below ~150/yr payback exceeds 2 years.",
+      "blocks": "EVERYTHING",
+      "severity": "BLOCKING",
+      "resolution_method": "Ask one real platform team to count.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-26",
+      "question": "Does any candidate user's release gate have a programmatic block point an artifact could feed? If not, thesis clause (c) is decorative.",
+      "blocks": "thesis clause (c)",
+      "severity": "HIGH",
+      "resolution_method": "Inspect one real release gate.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-27",
+      "question": "Is the ~700h build estimate defensible for the MVDC scope, and what is the per-framework adapter cost (column F)? Every economic conclusion scales with both. Build ONE adapter against ONE real third-party evaluation framework and time it.",
+      "blocks": "AUC-1 route B4; the E2 commission",
+      "severity": "BLOCKING",
+      "resolution_method": "Build one adapter. Days, not weeks.",
+      "owner": "unassigned"
     }
   ],
   "enforced_controls": [
@@ -987,7 +1059,7 @@
     "reduction_50_failures": "13-27 hours",
     "note": "A screen that finds more failures makes the run SLOWER. Planning capacity without reduction capacity produces a backlog, not results."
   },
-  "next_action": "Do not run the benchmark. Do not freeze the pre-registration. Three things first, all cheap: (1) decide the E2 commission -- 18 more externally authored defects, or accept the primary as a non-result; (2) recruit the BASELINE-C advocate owner, who must not be on the A-INT team and who holds the C-5 veto; (3) start or continue the 60-day K-7 ownership clock. Any of the three can end the project without a line of code.",
+  "next_action": "Do NOT commission E2 defects. Do NOT run any benchmark. Do NOT write code. Three cheap actions first, any of which can end the project: (1) read the Sept 2026 survey (OQ-24); (2) measure one real team's annual package volume (OQ-25); (3) build and time ONE adapter against ONE real third-party evaluation framework (OQ-27 / column F). Then re-enter the decision tree. implementation_authorized remains false.",
   "research_validity_challenge": {
     "thesis_under_test": "Failures in tool-using AI agents emerge from interactions between agent decisions, execution history, environment state, tool semantics, context state, authorization state and runtime conditions; a useful system discovers, characterizes, reduces and regression-tests them.",
     "falsifiable_form": "T*: there exists a class F of failures such that each requires >=2 simultaneously-active conditions from distinct layers; is not found by single-factor sweeps at equal budget; is NOT found by uniform random sampling plus interaction regression at equal budget; is characterizable with decoys excluded; and is non-empty for agents we did not write under dimensions we did not choose.",
@@ -1584,5 +1656,192 @@
       "K-6: decline the E2 commission and run underpowered anyway",
       "K-7: no workflow owner within 60 days"
     ]
+  },
+  "gate_1_0": {
+    "correction_accepted": "Gate 0.95 read C2 wrongly. 'A competent human can execute the protocol' does not imply the engine is unnecessary -- compilers did not become unnecessary because people can write assembly. The question is recurring cost at frequency, not one-shot capability.",
+    "challenge_added": "An automation thesis is ENTIRELY contingent on frequency. The load-bearing number is packages per year, and it is derived, not chosen: ~32/yr covers maintenance alone, ~150/yr repays the build inside 2 years. At 72/yr -- one team gating its own releases -- payback is 5.4 years. The automation thesis does NOT survive a single team.",
+    "product_thesis_T1_0": "For an AI platform team operating SHARED evaluation infrastructure across multiple product teams at >=150 evaluation packages/year, a reusable assurance engine (a) automatically executes the falsification protocol via a declared adapter; (b) misses NO validity defect a competent human executing the same protocol detects -- zero unfavourable discordance; (c) emits a machine-readable artifact carrying an EARNED claim_supported status a release gate can block on; (d) reduces recurring human effort from ~3.6h to <=0.5h per package; (e) repays its build within <=3 years at the user's MEASURED volume.",
+    "why_candidate_wording_rejected": [
+      "'materially reducing' is unquantified -- the same vagueness relocated to the efficiency claim",
+      "no correctness floor: an engine that is fast and wrong satisfies it",
+      "no frequency condition, so the economic claim is unfalsifiable",
+      "no named user and no artifact consumer"
+    ],
+    "primary_user": "The engineer who owns SHARED evaluation infrastructure for an AI platform team serving multiple product teams -- the person other teams' agents pass through before release. NOT the agent author, NOT the benchmark author. Selected on frequency: the other three candidates fall below the maintenance break-even.",
+    "workflow_economics": {
+      "recurring_manual_C2": "3.6 h/package",
+      "first_time_C2": "6.6 h/package",
+      "A_INT_recurring": "0.33 h/package",
+      "saving": "3.25 h/package",
+      "build_ASSUMPTION": "700 h (~4 person-months)",
+      "maintenance": "15%/yr = 105 h/yr",
+      "packages_per_year_to_cover_maintenance_alone": 32,
+      "cumulative_packages_to_repay_build": 215,
+      "payback": {
+        "6/yr": "never",
+        "24/yr": "never",
+        "50/yr": "12.2 yr",
+        "72/yr": "5.4 yr",
+        "150/yr": "1.8 yr",
+        "300/yr": "0.8 yr"
+      },
+      "where_the_time_is": "cross-reference (45m) + falsification interventions (50m) = 44% of recurring time. Exactly the two steps no existing tool performs."
+    },
+    "statistical_corrections": [
+      {
+        "id": "SC-1",
+        "error": "METRICS.md cited n=112 per arm for FAR with MDE 0.15. 112 was the n REQUIRED to achieve MDE 0.15; it was never the n AVAILABLE. A power calculation was transcribed into the design as though it were the design.",
+        "correction": "Actual denominator is 24 packages x 5 clustered replications = effective n ~29 at ICC 0.8. Real MDE is 0.29-0.32, not 0.15. No observations excluded; 112 is discarded. The C-2 threshold of 0.10 was unmeasurable by ~3x and is replaced by a paired discordance criterion (A-INT's FAR must not exceed C1's on more than 2 of 24 packages).",
+        "severity": "fourth self-inflicted validity defect in this project's history; third caught by re-deriving a number"
+      },
+      {
+        "id": "SC-2",
+        "error": "Statistical non-inferiority at a defensible margin (delta=0.175, preserving 50% of C2's advantage over C0) requires 96 defects per arm. We have 24, whose MDE is 0.35 -- wider than any margin worth stating.",
+        "correction": "Replaced by ZERO UNFAVOURABLE DISCORDANCE: A-INT misses no defect C2 detects. Measurable at n=24 and STRICTER than statistical non-inferiority -- if the two were truly equal at 30% discordance, P(zero unfavourable) ~ 0.008, so we would almost certainly fail."
+      },
+      {
+        "id": "SC-3",
+        "error": "Three of six preregistered claims were specified against an n the experiment does not have.",
+        "correction": "All three replaced or flagged. The CDDR primary on 6 E2 defects remains underpowered and is not fixed by these corrections."
+      }
+    ],
+    "replication_preserved": "Defect remains the population unit; majority classification feeds McNemar. BUT per-replication outcomes, detection rate, Wilson interval, majority classification and INSTABILITY are retained and emitted in assurance_artifact.reproduction.replication_detail and section 7 of the human report. A system detecting a defect 3/5 times differs meaningfully from 5/5 and the majority erases it; mean instability is a reported headline metric alongside CDDR.",
+    "baseline_adjudication": "Advocate VETO replaced by ADVOCATE CHALLENGE with a standard of review. A challenge must cite an EXACT preregistered strength floor; one citing no floor is automatically NOT UPHELD. An independent adjudicator (neither team) rules. UPHELD triggers a RE-RUN of affected packages for both arms -- the experiment is repaired, not voided. NOT UPHELD publishes the dissent verbatim. UNRESOLVED downgrades a CONTINUE to PIVOT.",
+    "e2_authorship_plan": {
+      "authors": 4,
+      "defects_per_author": 5,
+      "total_E2": 20,
+      "why_not_1x18": "18 defects from one author are one author's STYLE replicated, not 18 independent samples. 4 authors gives 3 degrees of freedom on the author effect -- enough to see a large effect, not a subtle one. Recorded as a compromise.",
+      "substrate": "2 of 4 authors use a DIFFERENT substrate (a public harness adapted to our package schema). This also tests the interface for real: if an outside author cannot express their defect in the schema, the SCHEMA is wrong, and that is worth more than the defect.",
+      "ontology": "2 of 4 are NOT shown the invariant list. Crossed 2x2 with substrate. Author 4 (blind to ontology, different substrate) produces the only defects not shaped by our assumptions twice over -- 5 defects, the most informative and least powerful numbers in the experiment.",
+      "common_method_bias": "per-author detection rates with Wilson intervals (halfwidth +/-0.33 at n=5 -- reveals collapse only); inter-author structural similarity ratio; 2x2 substrate x ontology breakdown. A rate high on O-1 and low on O-2 IS the circularity failure, and this 2x2 is the first design that can see it.",
+      "do_not_commission_yet": "Measure per-framework adapter cost (column F) FIRST. If adapter cost kills the economics, none of these defects will ever be scored."
+    },
+    "competitive_2026": {
+      "status": "ALL external items ASSERTED_UNVERIFIED; OQ-24 blocks gate exit on reading primary sources",
+      "coverage": "8 of 11 workflow steps are solved by existing work (NIST probes/audit trails, NIST cheating/contamination, AgentRx trajectory diagnosis, AgentChaos fault injection, current frameworks, mature mutation/flaky/hermeticity tooling). The 3 unsolved -- cross-referencing into a validity judgement, falsifying before attributing, emitting an earned machine-checkable unsupported status -- consume 44% of recurring human time.",
+      "integration_rejected": "'Integration' is what C1 achieves with a shared corpus and a competent engineer in ~3 weeks. Rejected as insufficient.",
+      "surviving_answer": "An EARNED, machine-checkable status asserting an evaluation's own claim is not supported by its own evidence -- derived only after a falsification attempt, carrying the derivation as a REQUIRED schema field, emitted so a release gate can block on it. Three load-bearing properties: it is NEGATIVE (a defensible refusal, an output type nothing in the landscape produces), EARNED (anyone can emit unsupported:true; the schema requires the derivation), and GATEABLE (consumed by a gate, not filed by a human).",
+      "honest_character": "This is NOT a technical capability gap. It is a COST POINT. C2 produces exactly this output. What does not exist is producing it at marginal human cost ~0, repeatedly, in CI. That is a legitimate thesis -- compilers, CI, linters and fuzzing infrastructure are all 'a human could do this, at a cost' -- but legitimate ONLY at frequency, which makes OQ-25 the whole project.",
+      "survey_implication": "A systematic survey means the field has a name, a literature, and an enumerated open-problems list. Problem identification is no longer a contribution. The survey's open-problems section is where to check whether our claim is already named -- and reading it could close this project in an afternoon, for less cost than any other action available."
+    },
+    "automation_utility_criterion": "AUC-1: A-INT satisfies it if EITHER (A) it detects strictly more E2 defects than C2 at exact McNemar p<0.05; OR (B) all four of: B1 zero unfavourable discordance vs C2; B2 recurring human minutes <= 0.25 x C2 (deliberately LENIENT -- our own estimate is 0.09x, and setting the threshold at 0.1x would be tuning to our prediction); B3 time to first correct finding <= 0.5 x C2 median; B4 net annual saving exceeds maintenance AND cumulative payback <=3 years at MEASURED volume. B2 and B3 require a HUMAN STUDY, not a simulation.",
+    "three_advantages_kept_separate": {
+      "correctness": "PREDICTED NONE over C2; possibly over C1",
+      "automation": "PREDICTED LARGE -- ~10x effort, ~7x throughput",
+      "economic": "UNRESOLVED -- contingent on OQ-25 (volume) and OQ-27/column F (adapter cost), either of which can make it negative"
+    },
+    "column_F_threat": "Per-framework adapter cost is unmeasured and interacts ADVERSELY with the user choice. The user was selected for high package volume, but volume comes from serving many product teams, and many teams means many evaluation frameworks -- each needing its own TrialSource, EffectLog and EnvironmentProbe adapter. At an assumed 24h/framework: 20 frameworks costs 480h, consuming the entire saving from 148 packages/year -- the whole reason the user was chosen. The variable supplying frequency is the variable supplying setup cost. MEASURE THIS BEFORE THE E2 COMMISSION.",
+    "product_vs_protocol_decision_tree": [
+      {
+        "row": 1,
+        "condition": "A-INT > C1 and materially > C2 on correctness",
+        "decision": "engine thesis supported"
+      },
+      {
+        "row": 2,
+        "condition": "A-INT ~ C2 on correctness (zero unfavourable discordance) AND meets AUC-1 route B",
+        "decision": "engine thesis supported through automation"
+      },
+      {
+        "row": 3,
+        "condition": "A-INT ~ C2 and no meaningful automation advantage",
+        "decision": "pivot to protocol + conformance suite"
+      },
+      {
+        "row": 4,
+        "condition": "A-INT ~ C1",
+        "decision": "KILL"
+      },
+      {
+        "row": 5,
+        "condition": "C2 materially outperforms A-INT",
+        "decision": "kill the engine thesis; a strong economic advantage on top of worse correctness is not acceptable, so in practice KILL"
+      },
+      {
+        "row": 6,
+        "condition": "no defensible user or recurring workflow identified",
+        "decision": "KILL -- and this row can fire TODAY on one number: measured annual package volume"
+      }
+    ],
+    "gate_exit_criteria": [
+      {
+        "n": 1,
+        "criterion": "one primary user",
+        "status": "MET"
+      },
+      {
+        "n": 2,
+        "criterion": "one primary workflow",
+        "status": "MET"
+      },
+      {
+        "n": 3,
+        "criterion": "one exact product interface",
+        "status": "MET -- third-party implementable"
+      },
+      {
+        "n": 4,
+        "criterion": "one falsifiable product thesis",
+        "status": "MET -- T1.0, falsifiable on 5 axes"
+      },
+      {
+        "n": 5,
+        "criterion": "one defined C2 comparison",
+        "status": "MET -- six-column matrix"
+      },
+      {
+        "n": 6,
+        "criterion": "one defensible automation-utility criterion",
+        "status": "MET -- AUC-1, derived from the workflow model"
+      },
+      {
+        "n": 7,
+        "criterion": "corrected statistical denominators",
+        "status": "MET -- SC-1..SC-3"
+      },
+      {
+        "n": 8,
+        "criterion": "corrected baseline adjudication",
+        "status": "MET -- challenge with standard of review"
+      },
+      {
+        "n": 9,
+        "criterion": "corrected E2 authorship plan",
+        "status": "MET -- 4x5, 2 substrates, 2x2 ontology cross"
+      },
+      {
+        "n": 10,
+        "criterion": "competitive differentiation survives challenge",
+        "status": "CONDITIONAL -- survives as an ECONOMIC claim only; BLOCKED on OQ-24"
+      }
+    ],
+    "answer_engine_or_protocol": {
+      "answer": "B (engine + protocol) IF AND ONLY IF a named user's MEASURED volume is >=150 packages/year. Otherwise C (protocol / conformance standard).",
+      "reasoning": [
+        "the capability exists -- C2 does everything the engine does; no TECHNICAL capability is underserved after combining the 2026 landscape",
+        "what is underserved is a COST POINT, which is a legitimate thesis (compilers, CI, linters) but only at frequency, and the frequency required is high",
+        "the protocol has standalone value regardless, is useful to users below the threshold, and costs a fraction of the engine",
+        "(A) engine-only is rejected outright: an engine whose protocol is undocumented cannot be checked, and the protocol is the part that generalises",
+        "(D) nothing remains live via decision-tree rows 4, 5, 6 plus carried kills K-6 and K-7"
+      ],
+      "design_decision": "Build the protocol and conformance suite FIRST in BOTH branches. It is required for (B), it IS (C), it is cheap, and it is the only artifact that survives a KILL.",
+      "threat_agreement": "COMPETITIVE_2026 T4 reaches the same conclusion independently from the competitive side: if a standards body defines the assurance artifact, the durable asset is the specification and its conformance suite, not the engine."
+    }
+  },
+  "gate_1_0_recommendation": {
+    "answer": "B conditional on OQ-25; otherwise C",
+    "build_order": "Protocol and conformance suite FIRST, in both branches.",
+    "do_not_yet": [
+      "commission the 18/20 E2 defects",
+      "run any benchmark",
+      "write application code"
+    ],
+    "three_actions_before_anything_else": [
+      "OQ-24: read the Sept 2026 validity-centered agent evaluation survey. Cheapest possible action; can end the project.",
+      "OQ-25: get ONE real number -- annual evaluation-package volume for one named platform team. Decides decision-tree row 6 without any experiment.",
+      "OQ-27/column F: build ONE adapter against ONE real third-party evaluation framework and time it. If per-framework cost is high, the user chosen for frequency is the user whose setup cost scales with the same variable, and the economics invert."
+    ],
+    "why_not_the_E2_commission_yet": "20 external defects are the most expensive item in the plan and they only matter if the economics survive. Column F can invalidate the economics for a few days of work."
   }
 }
