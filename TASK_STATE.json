@@ -1,234 +1,1096 @@
 {
-  "schema_version": "0.2.0",
+  "schema_version": "0.3.0",
   "project": "agent-reliability-experiment-engine",
   "working_title": "Agent Failure Laboratory",
-  "generated_at": "2026-09-21",
-  "current_gate": "GATE_0_5_ARCHITECTURE_PIVOT",
-  "gate_status": "ARTIFACTS_REWRITTEN_PENDING_HUMAN_REVIEW",
+  "generated_at": "2026-09-22",
+  "current_gate": "GATE_0_75_RESEARCH_VALIDITY",
+  "gate_status": "VALIDITY_CHALLENGE_COMPLETE_PENDING_BENCHMARK_RUN",
   "implementation_authorized": false,
-
   "pivot": {
-    "supersedes": "0.1.0 — runtime assurance / unknown side-effect adjudication as product thesis",
+    "supersedes": "0.1.0 \u2014 runtime assurance / unknown side-effect adjudication as product thesis",
     "reason": "That thesis is already addressed by verified tool-call and postcondition work, postcondition MCP implementations, exactly-once middleware, runtime execution-proof work, and current agent-control standards.",
     "new_center": "interaction-aware, stateful reliability experimentation and failure reduction",
-    "demoted_to_mechanism": ["postcondition verification", "outcome adjudication", "OTel telemetry", "MCP controls", "replay", "security policy enforcement"],
+    "demoted_to_mechanism": [
+      "postcondition verification",
+      "outcome adjudication",
+      "OTel telemetry",
+      "MCP controls",
+      "replay",
+      "security policy enforcement"
+    ],
     "note": "The demoted mechanisms are also FACTORS in the experiment space, which is strictly more useful than being the product."
   },
-
   "core_problem": "Given a tool-using agent, its environment model, tool contracts, and explicit reliability/safety invariants, systematically explore combinations of runtime faults, tool behavior, context/state mutations, policy/configuration changes, and model behavior; identify invariant violations; minimize the failing configuration/trace; and compile the result into a reproducible regression test.",
-
   "production_claim": "none. Prototype and reference implementation. All results are obtained against a synthetic environment and a factor model this project authored. claim_scope is never PRODUCTION_BEHAVIOR.",
-
   "artifacts": [
-    {"path": "docs/PROJECT_CHARTER.md", "state": "REWRITTEN", "version": "0.2.0"},
-    {"path": "docs/ARCHITECTURE_SURFACE.md", "state": "REWRITTEN", "version": "0.2.0"},
-    {"path": "docs/FAILURE_TAXONOMY.md", "state": "REWRITTEN", "version": "0.2.0"},
-    {"path": "docs/EVALUATION_STRATEGY.md", "state": "REWRITTEN", "version": "0.2.0"},
-    {"path": "docs/THREAT_MODEL.md", "state": "REWRITTEN", "version": "0.2.0"},
-    {"path": "docs/QUOTA_AND_COST_MODEL.md", "state": "REWRITTEN", "version": "0.2.0"},
-    {"path": "docs/ADR/0001-initial-architecture.md", "state": "REWRITTEN", "version": "0.2.0"},
-    {"path": "docs/COMPETITIVE_OVERLAP.md", "state": "NEW", "version": "0.1.0"},
-    {"path": "docs/INTERACTION_MODEL.md", "state": "NEW", "version": "0.1.0"},
-    {"path": "docs/REGRESSION_ARTIFACT_SPEC.md", "state": "NEW", "version": "0.1.0"},
-    {"path": "TASK_STATE.json", "state": "REWRITTEN", "version": "0.2.0"}
-  ],
-  "note_on_completion": "No artifact is COMPLETE. REWRITTEN means written and internally consistent. No feature is implemented. No code exists.",
-
-  "mandatory_corrections_applied": [
-    {"id": "MC-1", "correction": "OQ-01 reframed: CP1..CP8 semantic capability taxonomy; capability profile is a varied CONFIG factor, not a blocker. Real-API survey demoted to adapter-prioritization study and external-validity limitation.", "where": "PROJECT_CHARTER D.1, INTERACTION_MODEL C1.2"},
-    {"id": "MC-2", "correction": "Idempotency fixed: effect_id / request_digest / schema_version are three separate fields. schema_version NEVER enters effect_id. Semantic change without a declared new step fails closed.", "where": "ARCHITECTURE_SURFACE H.3, ADR D6"},
-    {"id": "MC-3", "correction": "Evidence fixed: five orthogonal fields (claim_type, observation_source, provenance, assurance_level, derivation_method) plus claim_scope. Deterministic derivation over an untrusted payload is a claim about what the source reported, not a world fact.", "where": "ARCHITECTURE_SURFACE L, ADR D5"},
-    {"id": "MC-4", "correction": "Causal language fixed: 'randomized intervention' removed; CONTROLLED_INTERVENTION_RESULT used. A version change is STATISTICAL_ASSOCIATION, not a natural experiment. Banned: root cause, caused by, due to, because of, natural experiment, randomized.", "where": "ARCHITECTURE_SURFACE L.2"},
-    {"id": "MC-5", "correction": "90/7/3 split removed. Three evidence layers L-DET / L-LOC / L-REM, never pooled into one statistic.", "where": "PROJECT_CHARTER D.5, EVALUATION_STRATEGY O.2"},
-    {"id": "MC-6", "correction": "Retry safety by semantic effect class: PURE_READ, IDEMPOTENT_READ, IDEMPOTENT_WRITE, NON_IDEMPOTENT_WRITE, UNKNOWN. HTTP verb and read_only removed as criteria.", "where": "ARCHITECTURE_SURFACE J"},
-    {"id": "MC-7", "correction": "Central claim narrowed: never exactly-once against arbitrary external systems. Unsupported systems yield INDETERMINATE / UNVERIFIABLE. claim_scope=PRODUCTION_BEHAVIOR is unconstructible.", "where": "PROJECT_CHARTER D.7, ARCHITECTURE_SURFACE L.1"},
-    {"id": "MC-8", "correction": "Source lint demoted to secondary. Primary control is typed capability isolation: illegal evidence production is impossible by construction.", "where": "THREAT_MODEL 1, ADR D4"},
-    {"id": "MC-9", "correction": "Replay modes made precise: EXACT_REPLAY / CONTROLLED_REPLAY / LIVE_EXECUTION. LIVE_EXECUTION is never called replay. Divergence invalidates counterfactual interpretation unless explicitly handled.", "where": "ARCHITECTURE_SURFACE N"},
-    {"id": "MC-10", "correction": "LLM demoted to optional narration / system under test. Never required for fault scheduling, experiment arithmetic, authorization, state transitions, oracle evaluation, anomaly math, hypothesis ranking, replay integrity, scoring, evidence bookkeeping, or failure reduction.", "where": "PROJECT_CHARTER D.10, QUOTA_AND_COST_MODEL 4.2"}
-  ],
-
-  "new_capabilities": [
-    {"id": "C1", "name": "environment/factor model", "gate": 3},
-    {"id": "C2", "name": "experiment planner (covering arrays, constraints, sequences, metamorphic, budget scheduling)", "gate": 3},
-    {"id": "C3", "name": "adaptive search (transparent Hamming expansion first)", "gate": 3},
-    {"id": "C4", "name": "deterministic oracles INV-1..INV-9", "gate": 2},
-    {"id": "C5", "name": "interaction analysis (Phase-3 designed factorials only)", "gate": 5},
-    {"id": "C6", "name": "failure minimization (ddmin + r_confirm + fingerprint-aware acceptance)", "gate": 4},
-    {"id": "C7", "name": "failure fingerprint with stability metric", "gate": 4},
-    {"id": "C8", "name": "regression compiler", "gate": 5},
-    {"id": "C9", "name": "coverage accounting including the unexplored space", "gate": 3},
-    {"id": "C10", "name": "model canary boundary (L-LOC, L-REM)", "gate": 6}
-  ],
-
-  "truth_model": ["OBSERVED_EVENT", "DETERMINISTIC_DERIVATION", "STATISTICAL_ASSOCIATION", "CONTROLLED_INTERVENTION_RESULT", "HYPOTHESIS", "INDETERMINATE"],
-  "claim_scopes": ["WHAT_THE_SOURCE_REPORTED", "ENVIRONMENT_STATE", "EXPERIMENT_RESULT", "PRODUCTION_BEHAVIOR (NEVER ASSERTABLE)"],
-
-  "invariants": [
-    {"id": "INV-1", "statement": "No duplicate side effect: each effect_id appears at most once in the ground-truth effect log"},
-    {"id": "INV-2", "statement": "No unauthorized action: every applied effect has a matching authorization decision with sufficient scope"},
-    {"id": "INV-3", "statement": "Postcondition consistency against the authoritative source"},
-    {"id": "INV-4", "statement": "Bounded retries per effect_id and per execution"},
-    {"id": "INV-5", "statement": "No unsafe tool sequence per the declared sequence policy"},
-    {"id": "INV-6", "statement": "No budget exhaustion"},
-    {"id": "INV-7", "statement": "Task completion: the declared goal postcondition holds"},
-    {"id": "INV-8", "statement": "No unknown-outcome promotion: INDETERMINATE is never recorded as APPLIED or NOT_APPLIED"},
-    {"id": "INV-9", "statement": "Determinism: identical (fixture_digest, seed, assignment, versions) implies identical trace_digest. Evaluated as an ORACLE, not assumed."}
-  ],
-
-  "build_gates": [
     {
-      "gate": 1, "name": "Environment, Ledger, Adapter", "status": "NOT_STARTED",
-      "objective": "A trial can be executed, observed, and byte-reproduced.",
-      "scope": ["append-only seq-ordered ledger", "versioned fixture store with snapshot/restore BY DIGEST", "execution adapter holding sole DispatchCapability", "five synthetic services with declarable CP1..CP8 profiles", "ground-truth effect log unreachable from ZONE S", "deterministic stub model adapter"],
-      "invariants": ["INV-9", "INV-8", "ledger append-only"],
-      "exit_tests": ["1000 trials run twice yield identical trace_digest for every pair", "fixture restore digest equals declared baseline", "agent credential DENIED on the ground-truth log", "narrator with no capability cannot construct ObservedEvent", "full suite passes with zero LLM availability"],
-      "not_premature_because": "Every downstream capability (reduction, fingerprinting, regression artifacts) is invalid without byte-reproducibility. Snapshot-restore-by-digest cannot be retrofitted; adding it later rewrites every component that touched state.",
-      "deferred": ["oracles beyond INV-8/9", "any planner", "any reduction", "Neo4j", "ClickHouse", "Qdrant", "Temporal", "OPA process", "MCP", "frontend"]
+      "path": "docs/PROJECT_CHARTER.md",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
     },
     {
-      "gate": 2, "name": "Oracles, Fault Injector, Runner", "status": "NOT_STARTED",
-      "objective": "A single trial under a named factor assignment yields a versioned oracle verdict.",
-      "scope": ["oracle engine holding sole OracleCapability", "INV-1..INV-9", "seeded per-trial fault injector", "single-trial runner", "effect identity (three fields)", "retry legality by semantic effect class", "reconciliation matrix"],
-      "invariants": ["all INV-1..INV-9 evaluable", "every oracle returns INDETERMINATE rather than defaulting to HOLDS"],
-      "exit_tests": ["oracle meta-suite: known-pass, known-fail, adversarial near-miss, degenerate, mutation", "an oracle that crashes or defaults to HOLDS on degenerate input FAILS THE BUILD", "serialization change yields same effect_id", "semantic change without declared new step yields ABORTED/EFFECT_IDENTITY_VIOLATION", "replica-lag fault yields INDETERMINATE never NOT_APPLIED", "server-side request count equals adapter attempt_no"],
-      "not_premature_because": "A planner without trustworthy oracles generates volume, not signal. An oracle that silently never fires is indistinguishable from a reliable system; this gate makes that impossible before any large run.",
-      "deferred": ["covering arrays", "reduction", "interaction analysis"],
-      "must_resolve_within": ["OQ-05"]
+      "path": "docs/ARCHITECTURE_SURFACE.md",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
     },
     {
-      "gate": 3, "name": "Experiment Planner and Coverage", "status": "NOT_STARTED",
-      "objective": "A bounded, constraint-aware plan over the factor space with honest coverage accounting.",
-      "scope": ["factor model C1", "constraint-aware covering array at t=2", "state-machine sequence generation", "metamorphic relations MR-1..MR-6", "budget-aware scheduler", "coverage report C9 including the unexplored space"],
-      "invariants": ["coverage report states infeasible_fraction and constraints_applied", "screening and adaptive trials reported separately", "every number carries n"],
-      "exit_tests": ["independent verifier confirms every feasible pair is covered", "S2: engine finds >=1 two-factor interaction failure whose single-factor arms both pass at n>=50", "OQ-08 seeded-bug detection rate measured against externally-authored bugs"],
-      "not_premature_because": "Screening is minutes and reduction is hours. Planning before reduction means failures arrive faster than they can be processed, which is the correct order: the reducer's budget must be sized from real failure volume.",
-      "deferred": ["t=3 until a 3-way failure is found that pairwise missed", "adaptive search beyond Hamming expansion", "all learned search"]
+      "path": "docs/FAILURE_TAXONOMY.md",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
     },
     {
-      "gate": 4, "name": "Failure Reduction and Fingerprinting", "status": "NOT_STARTED",
-      "objective": "A failure reduces to a stable, minimal-with-confidence reproducer.",
-      "scope": ["ddmin with r_confirm", "fingerprint-aware acceptance", "non-monotonicity detection (REDUCTION_UNSTABLE)", "hierarchical reduction order", "fingerprint composition and clustering with stability metric", "per-failure reduction budget"],
-      "invariants": ["a reduction is accepted only if the fingerprint is unchanged", "minimality_confidence reported; '1-minimal' never claimed", "budget exhaustion yields PARTIALLY_REDUCED"],
-      "exit_tests": ["S3: seeded non-monotone fixture yields REDUCTION_UNSTABLE not a confident minimum", "seeded fingerprint-collision fixture flags the cluster UNSTABLE", "reduction of a known 3-factor interaction recovers exactly those three in >= x% of independent runs, x measured not asserted"],
-      "not_premature_because": "Reduction is the cost centre (13-27h for 50 failures vs 8min screening). Building it before the planner produces real failure volume would size its budget from imagination.",
-      "deferred": ["automated root-cause attribution (does not exist, will not be built)", "cross-failure clustering beyond fingerprint identity"],
-      "blocked_by": ["OQ-13"]
+      "path": "docs/EVALUATION_STRATEGY.md",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
     },
     {
-      "gate": 5, "name": "Interaction Estimation and Regression Compilation", "status": "NOT_STARTED",
-      "objective": "A minimized failure becomes an interaction estimate with an interval and a re-executable regression artifact.",
-      "scope": ["Phase-3 designed factorials", "contingency plus logistic interaction terms", "BH-FDR over the pre-declared hypothesis family", "McNemar only where pairing genuinely holds", "regression compiler per REGRESSION_ARTIFACT_SPEC"],
-      "invariants": ["interaction estimates derive ONLY from Phase-3 data (enforced by InterventionCapability)", "every estimate carries raw p, adjusted p, q, family size and family identity", "every artifact carries a measured reproduction_rate with an interval"],
-      "exit_tests": ["S4: artifact re-executes from the artifact alone on a clean checkout and reproduces within its recorded interval", "null-factor control does not survive FDR across >= 20 independent screens", "a 0.4-reproduction artifact is executed r times against a threshold, never once"],
-      "not_premature_because": "Estimation requires minimized factor sets. Running factorials over 14 factors is 7 million cells; reduction is what makes estimation affordable.",
-      "deferred": ["Bayesian optimization", "learned surrogates", "causal-graph inference"],
-      "blocked_by": ["OQ-06"]
+      "path": "docs/THREAT_MODEL.md",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
     },
     {
-      "gate": 6, "name": "Model Canary Boundary and Reporting", "status": "NOT_STARTED",
-      "objective": "The model becomes a system under test on a fixed budgeted canary boundary, and the run is reportable with its limits.",
-      "scope": ["L-LOC and L-REM canary suites, separately reported", "provider adapter with token-metered local budget and header reconciliation", "optional narrator (pure function, no capabilities)", "MCP adapter behind the internal tool protocol", "export of coverage plus limitations plus artifacts"],
-      "invariants": ["L-DET / L-LOC / L-REM never pooled", "no remote call required by any deterministic component", "provider_switch always recorded, never silent"],
-      "exit_tests": ["S5: full pipeline with provider egress blocked produces byte-identical structured output", "canary budget enforced by a counter; exceeding it aborts with a partial report", "report contains the unexplored space and the external-validity limitation verbatim"],
-      "not_premature_because": "The model is the most expensive and least reproducible factor. Bringing it in last means a canary discrepancy localises to the model rather than to the harness.",
-      "deferred": ["A2A", "multi-agent swarms", "frontend beyond static export", "real-credential integration"],
-      "blocked_by": ["OQ-15", "OQ-16"]
+      "path": "docs/QUOTA_AND_COST_MODEL.md",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
+    },
+    {
+      "path": "docs/ADR/0001-initial-architecture.md",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
+    },
+    {
+      "path": "docs/COMPETITIVE_OVERLAP.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/INTERACTION_MODEL.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/REGRESSION_ARTIFACT_SPEC.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "TASK_STATE.json",
+      "state": "REWRITTEN",
+      "version": "0.2.0"
+    },
+    {
+      "path": "docs/RESEARCH_VALIDITY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/INTERACTION_FAILURE_BENCHMARK.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/FACTOR_MODEL_ADEQUACY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/SUBSTRATE_VALIDITY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/INTERACTION_ANALYSIS.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/REDUCTION_VALIDITY.md",
+      "state": "NEW",
+      "version": "0.1.0"
+    },
+    {
+      "path": "docs/CONTINUE_OR_KILL.md",
+      "state": "NEW",
+      "version": "0.1.0"
     }
   ],
-
+  "note_on_completion": "No artifact is COMPLETE. REWRITTEN means written and internally consistent. No feature is implemented. No code exists.",
+  "mandatory_corrections_applied": [
+    {
+      "id": "MC-1",
+      "correction": "OQ-01 reframed: CP1..CP8 semantic capability taxonomy; capability profile is a varied CONFIG factor, not a blocker. Real-API survey demoted to adapter-prioritization study and external-validity limitation.",
+      "where": "PROJECT_CHARTER D.1, INTERACTION_MODEL C1.2"
+    },
+    {
+      "id": "MC-2",
+      "correction": "Idempotency fixed: effect_id / request_digest / schema_version are three separate fields. schema_version NEVER enters effect_id. Semantic change without a declared new step fails closed.",
+      "where": "ARCHITECTURE_SURFACE H.3, ADR D6"
+    },
+    {
+      "id": "MC-3",
+      "correction": "Evidence fixed: five orthogonal fields (claim_type, observation_source, provenance, assurance_level, derivation_method) plus claim_scope. Deterministic derivation over an untrusted payload is a claim about what the source reported, not a world fact.",
+      "where": "ARCHITECTURE_SURFACE L, ADR D5"
+    },
+    {
+      "id": "MC-4",
+      "correction": "Causal language fixed: 'randomized intervention' removed; CONTROLLED_INTERVENTION_RESULT used. A version change is STATISTICAL_ASSOCIATION, not a natural experiment. Banned: root cause, caused by, due to, because of, natural experiment, randomized.",
+      "where": "ARCHITECTURE_SURFACE L.2"
+    },
+    {
+      "id": "MC-5",
+      "correction": "90/7/3 split removed. Three evidence layers L-DET / L-LOC / L-REM, never pooled into one statistic.",
+      "where": "PROJECT_CHARTER D.5, EVALUATION_STRATEGY O.2"
+    },
+    {
+      "id": "MC-6",
+      "correction": "Retry safety by semantic effect class: PURE_READ, IDEMPOTENT_READ, IDEMPOTENT_WRITE, NON_IDEMPOTENT_WRITE, UNKNOWN. HTTP verb and read_only removed as criteria.",
+      "where": "ARCHITECTURE_SURFACE J"
+    },
+    {
+      "id": "MC-7",
+      "correction": "Central claim narrowed: never exactly-once against arbitrary external systems. Unsupported systems yield INDETERMINATE / UNVERIFIABLE. claim_scope=PRODUCTION_BEHAVIOR is unconstructible.",
+      "where": "PROJECT_CHARTER D.7, ARCHITECTURE_SURFACE L.1"
+    },
+    {
+      "id": "MC-8",
+      "correction": "Source lint demoted to secondary. Primary control is typed capability isolation: illegal evidence production is impossible by construction.",
+      "where": "THREAT_MODEL 1, ADR D4"
+    },
+    {
+      "id": "MC-9",
+      "correction": "Replay modes made precise: EXACT_REPLAY / CONTROLLED_REPLAY / LIVE_EXECUTION. LIVE_EXECUTION is never called replay. Divergence invalidates counterfactual interpretation unless explicitly handled.",
+      "where": "ARCHITECTURE_SURFACE N"
+    },
+    {
+      "id": "MC-10",
+      "correction": "LLM demoted to optional narration / system under test. Never required for fault scheduling, experiment arithmetic, authorization, state transitions, oracle evaluation, anomaly math, hypothesis ranking, replay integrity, scoring, evidence bookkeeping, or failure reduction.",
+      "where": "PROJECT_CHARTER D.10, QUOTA_AND_COST_MODEL 4.2"
+    }
+  ],
+  "new_capabilities": [
+    {
+      "id": "C1",
+      "name": "environment/factor model",
+      "gate": 3
+    },
+    {
+      "id": "C2",
+      "name": "experiment planner (covering arrays, constraints, sequences, metamorphic, budget scheduling)",
+      "gate": 3
+    },
+    {
+      "id": "C3",
+      "name": "adaptive search (transparent Hamming expansion first)",
+      "gate": 3
+    },
+    {
+      "id": "C4",
+      "name": "deterministic oracles INV-1..INV-9",
+      "gate": 2
+    },
+    {
+      "id": "C5",
+      "name": "interaction analysis (Phase-3 designed factorials only)",
+      "gate": 5
+    },
+    {
+      "id": "C6",
+      "name": "failure minimization (ddmin + r_confirm + fingerprint-aware acceptance)",
+      "gate": 4
+    },
+    {
+      "id": "C7",
+      "name": "failure fingerprint with stability metric",
+      "gate": 4
+    },
+    {
+      "id": "C8",
+      "name": "regression compiler",
+      "gate": 5
+    },
+    {
+      "id": "C9",
+      "name": "coverage accounting including the unexplored space",
+      "gate": 3
+    },
+    {
+      "id": "C10",
+      "name": "model canary boundary (L-LOC, L-REM)",
+      "gate": 6
+    }
+  ],
+  "truth_model": [
+    "OBSERVED_EVENT",
+    "DETERMINISTIC_DERIVATION",
+    "STATISTICAL_ASSOCIATION",
+    "CONTROLLED_INTERVENTION_RESULT",
+    "HYPOTHESIS",
+    "INDETERMINATE"
+  ],
+  "claim_scopes": [
+    "WHAT_THE_SOURCE_REPORTED",
+    "ENVIRONMENT_STATE",
+    "EXPERIMENT_RESULT",
+    "PRODUCTION_BEHAVIOR (NEVER ASSERTABLE)"
+  ],
+  "invariants": [
+    {
+      "id": "INV-1",
+      "statement": "No duplicate side effect: each effect_id appears at most once in the ground-truth effect log"
+    },
+    {
+      "id": "INV-2",
+      "statement": "No unauthorized action: every applied effect has a matching authorization decision with sufficient scope"
+    },
+    {
+      "id": "INV-3",
+      "statement": "Postcondition consistency against the authoritative source"
+    },
+    {
+      "id": "INV-4",
+      "statement": "Bounded retries per effect_id and per execution"
+    },
+    {
+      "id": "INV-5",
+      "statement": "No unsafe tool sequence per the declared sequence policy"
+    },
+    {
+      "id": "INV-6",
+      "statement": "No budget exhaustion"
+    },
+    {
+      "id": "INV-7",
+      "statement": "Task completion: the declared goal postcondition holds"
+    },
+    {
+      "id": "INV-8",
+      "statement": "No unknown-outcome promotion: INDETERMINATE is never recorded as APPLIED or NOT_APPLIED"
+    },
+    {
+      "id": "INV-9",
+      "statement": "Determinism: identical (fixture_digest, seed, assignment, versions) implies identical trace_digest. Evaluated as an ORACLE, not assumed."
+    }
+  ],
+  "build_gates": [
+    {
+      "gate": 1,
+      "name": "Environment, Ledger, Adapter",
+      "status": "NOT_STARTED",
+      "objective": "A trial can be executed, observed, and byte-reproduced.",
+      "scope": [
+        "append-only seq-ordered ledger",
+        "versioned fixture store with snapshot/restore BY DIGEST",
+        "execution adapter holding sole DispatchCapability",
+        "five synthetic services with declarable CP1..CP8 profiles",
+        "ground-truth effect log unreachable from ZONE S",
+        "deterministic stub model adapter"
+      ],
+      "invariants": [
+        "INV-9",
+        "INV-8",
+        "ledger append-only"
+      ],
+      "exit_tests": [
+        "1000 trials run twice yield identical trace_digest for every pair",
+        "fixture restore digest equals declared baseline",
+        "agent credential DENIED on the ground-truth log",
+        "narrator with no capability cannot construct ObservedEvent",
+        "full suite passes with zero LLM availability"
+      ],
+      "not_premature_because": "Every downstream capability (reduction, fingerprinting, regression artifacts) is invalid without byte-reproducibility. Snapshot-restore-by-digest cannot be retrofitted; adding it later rewrites every component that touched state.",
+      "deferred": [
+        "oracles beyond INV-8/9",
+        "any planner",
+        "any reduction",
+        "Neo4j",
+        "ClickHouse",
+        "Qdrant",
+        "Temporal",
+        "OPA process",
+        "MCP",
+        "frontend"
+      ]
+    },
+    {
+      "gate": 2,
+      "name": "Oracles, Fault Injector, Runner",
+      "status": "NOT_STARTED",
+      "objective": "A single trial under a named factor assignment yields a versioned oracle verdict.",
+      "scope": [
+        "oracle engine holding sole OracleCapability",
+        "INV-1..INV-9",
+        "seeded per-trial fault injector",
+        "single-trial runner",
+        "effect identity (three fields)",
+        "retry legality by semantic effect class",
+        "reconciliation matrix"
+      ],
+      "invariants": [
+        "all INV-1..INV-9 evaluable",
+        "every oracle returns INDETERMINATE rather than defaulting to HOLDS"
+      ],
+      "exit_tests": [
+        "oracle meta-suite: known-pass, known-fail, adversarial near-miss, degenerate, mutation",
+        "an oracle that crashes or defaults to HOLDS on degenerate input FAILS THE BUILD",
+        "serialization change yields same effect_id",
+        "semantic change without declared new step yields ABORTED/EFFECT_IDENTITY_VIOLATION",
+        "replica-lag fault yields INDETERMINATE never NOT_APPLIED",
+        "server-side request count equals adapter attempt_no"
+      ],
+      "not_premature_because": "A planner without trustworthy oracles generates volume, not signal. An oracle that silently never fires is indistinguishable from a reliable system; this gate makes that impossible before any large run.",
+      "deferred": [
+        "covering arrays",
+        "reduction",
+        "interaction analysis"
+      ],
+      "must_resolve_within": [
+        "OQ-05"
+      ]
+    },
+    {
+      "gate": 3,
+      "name": "Experiment Planner and Coverage",
+      "status": "NOT_STARTED",
+      "objective": "A bounded, constraint-aware plan over the factor space with honest coverage accounting.",
+      "scope": [
+        "factor model C1",
+        "constraint-aware covering array at t=2",
+        "state-machine sequence generation",
+        "metamorphic relations MR-1..MR-6",
+        "budget-aware scheduler",
+        "coverage report C9 including the unexplored space"
+      ],
+      "invariants": [
+        "coverage report states infeasible_fraction and constraints_applied",
+        "screening and adaptive trials reported separately",
+        "every number carries n"
+      ],
+      "exit_tests": [
+        "independent verifier confirms every feasible pair is covered",
+        "S2: engine finds >=1 two-factor interaction failure whose single-factor arms both pass at n>=50",
+        "OQ-08 seeded-bug detection rate measured against externally-authored bugs"
+      ],
+      "not_premature_because": "Screening is minutes and reduction is hours. Planning before reduction means failures arrive faster than they can be processed, which is the correct order: the reducer's budget must be sized from real failure volume.",
+      "deferred": [
+        "t=3 until a 3-way failure is found that pairwise missed",
+        "adaptive search beyond Hamming expansion",
+        "all learned search"
+      ]
+    },
+    {
+      "gate": 4,
+      "name": "Failure Reduction and Fingerprinting",
+      "status": "NOT_STARTED",
+      "objective": "A failure reduces to a stable, minimal-with-confidence reproducer.",
+      "scope": [
+        "ddmin with r_confirm",
+        "fingerprint-aware acceptance",
+        "non-monotonicity detection (REDUCTION_UNSTABLE)",
+        "hierarchical reduction order",
+        "fingerprint composition and clustering with stability metric",
+        "per-failure reduction budget"
+      ],
+      "invariants": [
+        "a reduction is accepted only if the fingerprint is unchanged",
+        "minimality_confidence reported; '1-minimal' never claimed",
+        "budget exhaustion yields PARTIALLY_REDUCED"
+      ],
+      "exit_tests": [
+        "S3: seeded non-monotone fixture yields REDUCTION_UNSTABLE not a confident minimum",
+        "seeded fingerprint-collision fixture flags the cluster UNSTABLE",
+        "reduction of a known 3-factor interaction recovers exactly those three in >= x% of independent runs, x measured not asserted"
+      ],
+      "not_premature_because": "Reduction is the cost centre (13-27h for 50 failures vs 8min screening). Building it before the planner produces real failure volume would size its budget from imagination.",
+      "deferred": [
+        "automated root-cause attribution (does not exist, will not be built)",
+        "cross-failure clustering beyond fingerprint identity"
+      ],
+      "blocked_by": [
+        "OQ-13"
+      ]
+    },
+    {
+      "gate": 5,
+      "name": "Interaction Estimation and Regression Compilation",
+      "status": "NOT_STARTED",
+      "objective": "A minimized failure becomes an interaction estimate with an interval and a re-executable regression artifact.",
+      "scope": [
+        "Phase-3 designed factorials",
+        "contingency plus logistic interaction terms",
+        "BH-FDR over the pre-declared hypothesis family",
+        "McNemar only where pairing genuinely holds",
+        "regression compiler per REGRESSION_ARTIFACT_SPEC"
+      ],
+      "invariants": [
+        "interaction estimates derive ONLY from Phase-3 data (enforced by InterventionCapability)",
+        "every estimate carries raw p, adjusted p, q, family size and family identity",
+        "every artifact carries a measured reproduction_rate with an interval"
+      ],
+      "exit_tests": [
+        "S4: artifact re-executes from the artifact alone on a clean checkout and reproduces within its recorded interval",
+        "null-factor control does not survive FDR across >= 20 independent screens",
+        "a 0.4-reproduction artifact is executed r times against a threshold, never once"
+      ],
+      "not_premature_because": "Estimation requires minimized factor sets. Running factorials over 14 factors is 7 million cells; reduction is what makes estimation affordable.",
+      "deferred": [
+        "Bayesian optimization",
+        "learned surrogates",
+        "causal-graph inference"
+      ],
+      "blocked_by": [
+        "OQ-06"
+      ]
+    },
+    {
+      "gate": 6,
+      "name": "Model Canary Boundary and Reporting",
+      "status": "NOT_STARTED",
+      "objective": "The model becomes a system under test on a fixed budgeted canary boundary, and the run is reportable with its limits.",
+      "scope": [
+        "L-LOC and L-REM canary suites, separately reported",
+        "provider adapter with token-metered local budget and header reconciliation",
+        "optional narrator (pure function, no capabilities)",
+        "MCP adapter behind the internal tool protocol",
+        "export of coverage plus limitations plus artifacts"
+      ],
+      "invariants": [
+        "L-DET / L-LOC / L-REM never pooled",
+        "no remote call required by any deterministic component",
+        "provider_switch always recorded, never silent"
+      ],
+      "exit_tests": [
+        "S5: full pipeline with provider egress blocked produces byte-identical structured output",
+        "canary budget enforced by a counter; exceeding it aborts with a partial report",
+        "report contains the unexplored space and the external-validity limitation verbatim"
+      ],
+      "not_premature_because": "The model is the most expensive and least reproducible factor. Bringing it in last means a canary discrepancy localises to the model rather than to the harness.",
+      "deferred": [
+        "A2A",
+        "multi-agent swarms",
+        "frontend beyond static export",
+        "real-credential integration"
+      ],
+      "blocked_by": [
+        "OQ-15",
+        "OQ-16"
+      ]
+    }
+  ],
   "gate_0_5_exit_criteria": [
-    {"id": "G05-1", "criterion": "Human review of all ten documents", "met": false},
-    {"id": "G05-2", "criterion": "OQ-05 resolved (concurrency factor scope: coarse interleaving or deterministic scheduler)", "met": false},
-    {"id": "G05-3", "criterion": "OQ-08 resolved (factor-model validation method agreed)", "met": false},
-    {"id": "G05-4", "criterion": "OQ-13 resolved (CAS retention per sensitivity class, named owner)", "met": false},
-    {"id": "G05-5", "criterion": "ADR-0001 v0.2.0 moved from PROPOSED to ACCEPTED", "met": false}
+    {
+      "id": "G05-1",
+      "criterion": "Human review of all ten documents",
+      "met": false
+    },
+    {
+      "id": "G05-2",
+      "criterion": "OQ-05 resolved (concurrency factor scope: coarse interleaving or deterministic scheduler)",
+      "met": false
+    },
+    {
+      "id": "G05-3",
+      "criterion": "OQ-08 resolved (factor-model validation method agreed)",
+      "met": false
+    },
+    {
+      "id": "G05-4",
+      "criterion": "OQ-13 resolved (CAS retention per sensitivity class, named owner)",
+      "met": false
+    },
+    {
+      "id": "G05-5",
+      "criterion": "ADR-0001 v0.2.0 moved from PROPOSED to ACCEPTED",
+      "met": false
+    }
   ],
-
   "architectural_failure_modes": [
-    {"id": "EM-01", "name": "determinism rots silently", "residual": "HIGH"},
-    {"id": "EM-02", "name": "covering-array data used to estimate interactions", "residual": "LOW"},
-    {"id": "EM-03", "name": "reducer walks to a different bug", "residual": "MEDIUM"},
-    {"id": "EM-04", "name": "fingerprint collision or splitting", "residual": "MEDIUM_HIGH"},
-    {"id": "EM-05", "name": "multiple comparisons manufacture interactions", "residual": "MEDIUM"},
-    {"id": "EM-06", "name": "adaptive search biases coverage", "residual": "LOW"},
-    {"id": "EM-07", "name": "an oracle that never fires reads as a reliable system", "residual": "MEDIUM"},
-    {"id": "EM-08", "name": "constraints silently shrink the coverage denominator", "residual": "MEDIUM"},
-    {"id": "EM-09", "name": "trajectory divergence produces plausible fiction", "residual": "MEDIUM"},
-    {"id": "EM-10", "name": "effect identity collapse makes duplicates undetectable", "residual": "LOW"},
-    {"id": "EM-11", "name": "hidden retries beneath the adapter", "residual": "LOW_SYNTHETIC_HIGH_REAL"},
-    {"id": "EM-12", "name": "shared state leaks across trials and fabricates interactions", "residual": "LOW_MEDIUM"},
-    {"id": "EM-13", "name": "regression suite rot", "residual": "MEDIUM"},
-    {"id": "EM-14", "name": "low-power regression artifacts reported as pass/fail", "residual": "LOW"},
-    {"id": "EM-15", "name": "sensitive data accumulates in the CAS", "residual": "MEDIUM"},
-    {"id": "EM-16", "name": "fault injection reaches a real system", "residual": "LOW_TECHNICAL_MEDIUM_OPERATIONAL"}
+    {
+      "id": "EM-01",
+      "name": "determinism rots silently",
+      "residual": "HIGH"
+    },
+    {
+      "id": "EM-02",
+      "name": "covering-array data used to estimate interactions",
+      "residual": "LOW"
+    },
+    {
+      "id": "EM-03",
+      "name": "reducer walks to a different bug",
+      "residual": "MEDIUM"
+    },
+    {
+      "id": "EM-04",
+      "name": "fingerprint collision or splitting",
+      "residual": "MEDIUM_HIGH"
+    },
+    {
+      "id": "EM-05",
+      "name": "multiple comparisons manufacture interactions",
+      "residual": "MEDIUM"
+    },
+    {
+      "id": "EM-06",
+      "name": "adaptive search biases coverage",
+      "residual": "LOW"
+    },
+    {
+      "id": "EM-07",
+      "name": "an oracle that never fires reads as a reliable system",
+      "residual": "MEDIUM"
+    },
+    {
+      "id": "EM-08",
+      "name": "constraints silently shrink the coverage denominator",
+      "residual": "MEDIUM"
+    },
+    {
+      "id": "EM-09",
+      "name": "trajectory divergence produces plausible fiction",
+      "residual": "MEDIUM"
+    },
+    {
+      "id": "EM-10",
+      "name": "effect identity collapse makes duplicates undetectable",
+      "residual": "LOW"
+    },
+    {
+      "id": "EM-11",
+      "name": "hidden retries beneath the adapter",
+      "residual": "LOW_SYNTHETIC_HIGH_REAL"
+    },
+    {
+      "id": "EM-12",
+      "name": "shared state leaks across trials and fabricates interactions",
+      "residual": "LOW_MEDIUM"
+    },
+    {
+      "id": "EM-13",
+      "name": "regression suite rot",
+      "residual": "MEDIUM"
+    },
+    {
+      "id": "EM-14",
+      "name": "low-power regression artifacts reported as pass/fail",
+      "residual": "LOW"
+    },
+    {
+      "id": "EM-15",
+      "name": "sensitive data accumulates in the CAS",
+      "residual": "MEDIUM"
+    },
+    {
+      "id": "EM-16",
+      "name": "fault injection reaches a real system",
+      "residual": "LOW_TECHNICAL_MEDIUM_OPERATIONAL"
+    }
   ],
-
   "kill_conditions": [
-    {"id": "K1", "reason": "A deterministic-simulation vendor ships an agent adapter with a tool-capability factor model. Their determinism story is stronger because they control the scheduler.", "check": "quarterly"},
-    {"id": "K2", "reason": "The deterministic substrate means we are mostly testing our own harness, not agents. Affordability and relevance are in direct opposition and the pivot does not resolve it.", "check": "GATE_6"},
-    {"id": "K3", "reason": "Concurrency and shared state, the most valuable interaction class, may require a deterministic scheduler. Without it they are untestable; with it this becomes a simulator build.", "check": "OQ-05, GATE_2"},
-    {"id": "K4", "reason": "Nobody's job is 'agent failure lab'. No budget line, no on-call rotation, no workflow to slot into. Most likely actual cause of death and not a technical objection.", "check": "ongoing"},
-    {"id": "K5", "reason": "The factor model is our own hypothesis, so the discovery claim is circular. A tool that only finds failures its authors imagined is an elaborate checklist.", "check": "OQ-08, GATE_3"}
+    {
+      "id": "K1",
+      "reason": "A deterministic-simulation vendor ships an agent adapter with a tool-capability factor model. Their determinism story is stronger because they control the scheduler.",
+      "check": "quarterly"
+    },
+    {
+      "id": "K2",
+      "reason": "The deterministic substrate means we are mostly testing our own harness, not agents. Affordability and relevance are in direct opposition and the pivot does not resolve it.",
+      "check": "GATE_6"
+    },
+    {
+      "id": "K3",
+      "reason": "Concurrency and shared state, the most valuable interaction class, may require a deterministic scheduler. Without it they are untestable; with it this becomes a simulator build.",
+      "check": "OQ-05, GATE_2"
+    },
+    {
+      "id": "K4",
+      "reason": "Nobody's job is 'agent failure lab'. No budget line, no on-call rotation, no workflow to slot into. Most likely actual cause of death and not a technical objection.",
+      "check": "ongoing"
+    },
+    {
+      "id": "K5",
+      "reason": "The factor model is our own hypothesis, so the discovery claim is circular. A tool that only finds failures its authors imagined is an elaborate checklist.",
+      "check": "OQ-08, GATE_3"
+    }
   ],
-
   "open_questions": [
-    {"id": "OQ-01", "question": "Adapter-prioritization study: which CP1..CP8 profile levels do real API surfaces actually exhibit? DEMOTED from blocking — it bounds external validity and trial allocation, nothing else.", "blocks": "nothing", "severity": "INFORMATIONAL"},
-    {"id": "OQ-02", "question": "Current-documentation audit of the three SEVERE competitive overlaps (deterministic simulation, CIT tooling, fuzzing infrastructure).", "blocks": "GATE_3", "severity": "HIGH"},
-    {"id": "OQ-03", "question": "Practical N for constraint-aware covering-array generation over this exact factor space at t=2 and t=3. All planner cost arithmetic depends on it.", "blocks": "GATE_3", "severity": "MEDIUM"},
-    {"id": "OQ-04", "question": "Does reducing only in CONTROLLED_REPLAY with a stub planner reduce the RIGHT failure, when the original failure involved real model behaviour?", "blocks": "GATE_4", "severity": "HIGH"},
-    {"id": "OQ-05", "question": "Concurrency factor scope: coarse adapter-controlled interleaving points, or true deterministic scheduling? The latter is a simulator build, not a factor.", "blocks": "GATE_2", "severity": "BLOCKING_ACCEPTANCE"},
-    {"id": "OQ-06", "question": "How is the FDR hypothesis family fixed before the run without either over-broad correction (no power) or post-hoc narrowing (no control)?", "blocks": "GATE_5", "severity": "HIGH"},
-    {"id": "OQ-07", "question": "r_confirm and fingerprint_stability thresholds. Currently placeholders (5, 0.8). Must be derived from measured discordance rates, not chosen.", "blocks": "GATE_4", "severity": "MEDIUM"},
-    {"id": "OQ-08", "question": "How is the factor model itself validated? Proposed: seeded bugs authored by someone who did not write the factor model, detection rate measured. A low rate triggers K5.", "blocks": "GATE_3", "severity": "BLOCKING_ACCEPTANCE"},
-    {"id": "OQ-09", "question": "Regression artifact invalidation granularity. Any environment_version bump is safe but invalidates the whole suite on a patch release.", "blocks": "GATE_5", "severity": "MEDIUM"},
-    {"id": "OQ-10", "question": "Should NO_LONGER_REPRODUCES require human confirmation before retiring an artifact? Automatic retirement silently deletes coverage.", "blocks": "GATE_5", "severity": "MEDIUM"},
-    {"id": "OQ-11", "question": "Is human capacity available for disputed-verdict adjudication and held-out review? If not, delete those controls rather than describing controls that do not exist.", "blocks": "GATE_2", "severity": "MEDIUM"},
-    {"id": "OQ-12", "question": "What is the L-LOC / L-REM task set and who declares it? 'Declared before the run' is meaningless without a named owner and a change log.", "blocks": "GATE_6", "severity": "MEDIUM"},
-    {"id": "OQ-13", "question": "CAS retention per sensitivity class. Direct tension with reduction and replay, which need payloads. A policy decision with a named owner.", "blocks": "GATE_4", "severity": "BLOCKING_ACCEPTANCE"},
-    {"id": "OQ-14", "question": "Actual wall-clock per deterministic trial. Every number in QUOTA_AND_COST_MODEL section 1 scales with it.", "blocks": "GATE_3", "severity": "MEDIUM"},
-    {"id": "OQ-15", "question": "Token-level vs request-level rate headers. The local bucket must meter tokens.", "blocks": "GATE_6", "severity": "LOW"},
-    {"id": "OQ-16", "question": "Is a local model available in this environment at all? If not the L-LOC evidence layer does not exist and the ladder drops to L0/L1/L3.", "blocks": "GATE_6", "severity": "LOW"},
-    {"id": "OQ-17", "question": "Parallel reduction: how are per-worker fixtures isolated without multiplying EM-12 risk or T-3 storage?", "blocks": "GATE_4", "severity": "MEDIUM"}
+    {
+      "id": "OQ-01",
+      "question": "Adapter-prioritization study: which CP1..CP8 profile levels do real API surfaces actually exhibit? DEMOTED from blocking \u2014 it bounds external validity and trial allocation, nothing else.",
+      "blocks": "nothing",
+      "severity": "INFORMATIONAL"
+    },
+    {
+      "id": "OQ-02",
+      "question": "Current-documentation audit of the three SEVERE competitive overlaps (deterministic simulation, CIT tooling, fuzzing infrastructure).",
+      "blocks": "GATE_3",
+      "severity": "HIGH"
+    },
+    {
+      "id": "OQ-03",
+      "question": "Practical N for constraint-aware covering-array generation over this exact factor space at t=2 and t=3. All planner cost arithmetic depends on it.",
+      "blocks": "GATE_3",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-04",
+      "question": "Does reducing only in CONTROLLED_REPLAY with a stub planner reduce the RIGHT failure, when the original failure involved real model behaviour?",
+      "blocks": "GATE_4",
+      "severity": "HIGH"
+    },
+    {
+      "id": "OQ-05",
+      "question": "Concurrency factor scope: coarse adapter-controlled interleaving points, or true deterministic scheduling? The latter is a simulator build, not a factor.",
+      "blocks": "GATE_2",
+      "severity": "BLOCKING_ACCEPTANCE"
+    },
+    {
+      "id": "OQ-06",
+      "question": "How is the FDR hypothesis family fixed before the run without either over-broad correction (no power) or post-hoc narrowing (no control)?",
+      "blocks": "GATE_5",
+      "severity": "HIGH"
+    },
+    {
+      "id": "OQ-07",
+      "question": "r_confirm and fingerprint_stability thresholds. Currently placeholders (5, 0.8). Must be derived from measured discordance rates, not chosen.",
+      "blocks": "GATE_4",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-08",
+      "question": "How is the factor model itself validated? Proposed: seeded bugs authored by someone who did not write the factor model, detection rate measured. A low rate triggers K5.",
+      "blocks": "GATE_3",
+      "severity": "BLOCKING_ACCEPTANCE"
+    },
+    {
+      "id": "OQ-09",
+      "question": "Regression artifact invalidation granularity. Any environment_version bump is safe but invalidates the whole suite on a patch release.",
+      "blocks": "GATE_5",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-10",
+      "question": "Should NO_LONGER_REPRODUCES require human confirmation before retiring an artifact? Automatic retirement silently deletes coverage.",
+      "blocks": "GATE_5",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-11",
+      "question": "Is human capacity available for disputed-verdict adjudication and held-out review? If not, delete those controls rather than describing controls that do not exist.",
+      "blocks": "GATE_2",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-12",
+      "question": "What is the L-LOC / L-REM task set and who declares it? 'Declared before the run' is meaningless without a named owner and a change log.",
+      "blocks": "GATE_6",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-13",
+      "question": "CAS retention per sensitivity class. Direct tension with reduction and replay, which need payloads. A policy decision with a named owner.",
+      "blocks": "GATE_4",
+      "severity": "BLOCKING_ACCEPTANCE"
+    },
+    {
+      "id": "OQ-14",
+      "question": "Actual wall-clock per deterministic trial. Every number in QUOTA_AND_COST_MODEL section 1 scales with it.",
+      "blocks": "GATE_3",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-15",
+      "question": "Token-level vs request-level rate headers. The local bucket must meter tokens.",
+      "blocks": "GATE_6",
+      "severity": "LOW"
+    },
+    {
+      "id": "OQ-16",
+      "question": "Is a local model available in this environment at all? If NOT, L-STO does not exist, claims C8-C12 become unestablishable, existential risk #2 is unmitigable, and criterion K4 forces KILL or a runtime-only pivot. ANSWER THIS FIRST -- it is free and it may decide the project.",
+      "blocks": "GATE_6",
+      "severity": "BLOCKING_DECISION"
+    },
+    {
+      "id": "OQ-17",
+      "question": "Parallel reduction: how are per-worker fixtures isolated without multiplying EM-12 risk or T-3 storage?",
+      "blocks": "GATE_4",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "OQ-18",
+      "question": "Can we obtain real agent failure traces authored by nobody on this project? Without them, the benchmark tests only mechanisms one of us invented and RESEARCH_VALIDITY H6 is a permanent limitation.",
+      "blocks": "nothing, but it bounds every claim",
+      "severity": "HIGH",
+      "resolution_method": "Search for public agent incident/failure corpora; ask for a partner's traces.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-19",
+      "question": "Can the coarse concurrency model produce distinct interleaving_signature values at all? If not, benchmark case B-11 is unscorable, the concurrency factor is decorative, and K3/K5 lose their strongest cases.",
+      "blocks": "GATE_2, benchmark run",
+      "severity": "BLOCKING_DECISION",
+      "resolution_method": "Prototype the interleaving control points in the adapter design; no code -- a design walkthrough suffices.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-20",
+      "question": "Budget parity across arms and layers. A2 needs no fixture restores between configurations; A4 does. 'Equal trials' flatters A4; 'equal wall-clock' flatters it more. There may be no fair comparison, only a declared one.",
+      "blocks": "benchmark run",
+      "severity": "HIGH",
+      "resolution_method": "Declare the parity basis before the run and report both.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-21",
+      "question": "The reproducibility floor must be measured on null cases before any adequacy verdict is meaningful. Is the null-case set large enough to estimate a 95th percentile of within-cell variance?",
+      "blocks": "benchmark run",
+      "severity": "MEDIUM",
+      "resolution_method": "Power analysis on the null arm sizing.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-22",
+      "question": "126 ambient hypotheses at q=0.05 may leave near-zero power to detect a real ambient association at achievable n. If so the instrument returns UNKNOWN_MODEL on cases it should catch -- a false-negative failure mode that LOOKS like honesty and would make K1 fail for the wrong reason.",
+      "blocks": "benchmark run",
+      "severity": "BLOCKING_DECISION",
+      "resolution_method": "Power analysis over the ambient family before the benchmark is built.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "OQ-23",
+      "question": "If the stub's trajectory distribution is tuned toward observed L-STO trajectories to improve transfer, the transfer test becomes partly circular -- tuning the substrate to pass its own validity check. Needs a held-out set of L-STO trajectories never used for tuning.",
+      "blocks": "GATE_3",
+      "severity": "MEDIUM",
+      "resolution_method": "Hold out 30% of L-STO trajectories from any tuning.",
+      "owner": "unassigned"
+    }
   ],
-
   "enforced_controls": [
-    {"id": "SC-1", "control": "only the adapter holds DispatchCapability", "gate": 1},
-    {"id": "SC-2", "control": "narrator with no capability CANNOT construct ObservedEvent / OracleVerdict / ControlledInterventionResult", "gate": 1},
-    {"id": "SC-3", "control": "metric label sets contain only allow-listed keys", "gate": 1},
-    {"id": "SC-4", "control": "EXACT_REPLAY / CONTROLLED_REPLAY make zero outbound connections", "gate": 2},
-    {"id": "SC-5", "control": "seeded secrets and synthetic PII never reach the CAS", "gate": 1},
-    {"id": "SC-6", "control": "full oracle suite passes with the CAS emptied; payload oracles return INDETERMINATE", "gate": 2},
-    {"id": "SC-7", "control": "agent credential DENIED on the ground-truth effect log", "gate": 1},
-    {"id": "SC-8", "control": "negative-control tasks never pass", "gate": 3},
-    {"id": "SC-9", "control": "ledger role has INSERT only", "gate": 1},
-    {"id": "SC-10", "control": "action dispatched without a matching authorization record caught by invariant scan", "gate": 2},
-    {"id": "SC-11", "control": "adapter attempt_no equals server-side request count", "gate": 1},
-    {"id": "SC-12", "control": "an oracle crashing or defaulting to HOLDS on degenerate input fails the build", "gate": 2},
-    {"id": "SC-13", "control": "every constraint has a non-empty rationale; coverage reports infeasible_fraction", "gate": 3},
-    {"id": "SC-14", "control": "regression artifacts are immutable; re-measurement creates a new version", "gate": 5},
-    {"id": "SC-15", "control": "banned causal vocabulary absent from output templates (SECONDARY lint)", "gate": 5}
+    {
+      "id": "SC-1",
+      "control": "only the adapter holds DispatchCapability",
+      "gate": 1
+    },
+    {
+      "id": "SC-2",
+      "control": "narrator with no capability CANNOT construct ObservedEvent / OracleVerdict / ControlledInterventionResult",
+      "gate": 1
+    },
+    {
+      "id": "SC-3",
+      "control": "metric label sets contain only allow-listed keys",
+      "gate": 1
+    },
+    {
+      "id": "SC-4",
+      "control": "EXACT_REPLAY / CONTROLLED_REPLAY make zero outbound connections",
+      "gate": 2
+    },
+    {
+      "id": "SC-5",
+      "control": "seeded secrets and synthetic PII never reach the CAS",
+      "gate": 1
+    },
+    {
+      "id": "SC-6",
+      "control": "full oracle suite passes with the CAS emptied; payload oracles return INDETERMINATE",
+      "gate": 2
+    },
+    {
+      "id": "SC-7",
+      "control": "agent credential DENIED on the ground-truth effect log",
+      "gate": 1
+    },
+    {
+      "id": "SC-8",
+      "control": "negative-control tasks never pass",
+      "gate": 3
+    },
+    {
+      "id": "SC-9",
+      "control": "ledger role has INSERT only",
+      "gate": 1
+    },
+    {
+      "id": "SC-10",
+      "control": "action dispatched without a matching authorization record caught by invariant scan",
+      "gate": 2
+    },
+    {
+      "id": "SC-11",
+      "control": "adapter attempt_no equals server-side request count",
+      "gate": 1
+    },
+    {
+      "id": "SC-12",
+      "control": "an oracle crashing or defaulting to HOLDS on degenerate input fails the build",
+      "gate": 2
+    },
+    {
+      "id": "SC-13",
+      "control": "every constraint has a non-empty rationale; coverage reports infeasible_fraction",
+      "gate": 3
+    },
+    {
+      "id": "SC-14",
+      "control": "regression artifacts are immutable; re-measurement creates a new version",
+      "gate": 5
+    },
+    {
+      "id": "SC-15",
+      "control": "banned causal vocabulary absent from output templates (SECONDARY lint)",
+      "gate": 5
+    }
   ],
-
-  "banned_in_output": ["root cause", "caused by", "due to", "because of", "natural experiment", "randomized intervention", "1-minimal", "a single agent reliability score", "exactly-once against arbitrary external systems", "any claim of production readiness"],
-
+  "banned_in_output": [
+    "root cause",
+    "caused by",
+    "due to",
+    "because of",
+    "natural experiment",
+    "randomized intervention",
+    "1-minimal",
+    "a single agent reliability score",
+    "exactly-once against arbitrary external systems",
+    "any claim of production readiness"
+  ],
   "llm_policy": {
     "role": "system_under_test OR optional_narrator",
     "critical_path_calls": 0,
-    "never_required_for": ["fault scheduling", "experiment design arithmetic", "authorization", "state transitions", "oracle evaluation", "anomaly math", "hypothesis ranking", "replay integrity", "benchmark scoring", "evidence bookkeeping", "failure reduction"],
-    "remote_budget": {"L_REM_canary": 500, "narration": 200, "development": 200, "reserve": 100, "unit": "calls_per_day", "partitions_never_borrow": true},
-    "narration_caps": {"max_calls_per_report": 2, "max_prompt_tokens": 3000, "max_completion_tokens": 1000, "idempotent_on_bundle_digest": true},
-    "degradation_ladder": ["L0 primary", "L1 fallback with recorded provider_switch", "L2 local model", "L3 template-rendered report, zero inference"],
+    "never_required_for": [
+      "fault scheduling",
+      "experiment design arithmetic",
+      "authorization",
+      "state transitions",
+      "oracle evaluation",
+      "anomaly math",
+      "hypothesis ranking",
+      "replay integrity",
+      "benchmark scoring",
+      "evidence bookkeeping",
+      "failure reduction"
+    ],
+    "remote_budget": {
+      "L_REM_canary": 500,
+      "narration": 200,
+      "development": 200,
+      "reserve": 100,
+      "unit": "calls_per_day",
+      "partitions_never_borrow": true
+    },
+    "narration_caps": {
+      "max_calls_per_report": 2,
+      "max_prompt_tokens": 3000,
+      "max_completion_tokens": 1000,
+      "idempotent_on_bundle_digest": true
+    },
+    "degradation_ladder": [
+      "L0 primary",
+      "L1 fallback with recorded provider_switch",
+      "L2 local model",
+      "L3 template-rendered report, zero inference"
+    ],
     "l3_requirement": "structured output byte-identical to L0; only the prose paragraph may differ"
   },
-
   "cost_model_summary": {
     "dominant_cost": "trial compute, not inference",
     "binding_constraint": "reduction wall-clock",
-    "screening_pairwise": {"trials": 225, "wall_clock": "~8 min", "remote_calls": 0},
-    "reduction_per_failure": {"trials": "265 typical, 980 worst", "wall_clock": "9-33 min", "remote_calls": 0},
+    "screening_pairwise": {
+      "trials": 225,
+      "wall_clock": "~8 min",
+      "remote_calls": 0
+    },
+    "reduction_per_failure": {
+      "trials": "265 typical, 980 worst",
+      "wall_clock": "9-33 min",
+      "remote_calls": 0
+    },
     "reduction_50_failures": "13-27 hours",
     "note": "A screen that finds more failures makes the run SLOWER. Planning capacity without reduction capacity produces a backlog, not results."
   },
-
-  "next_action": "HUMAN REVIEW of the ten documents. Do not begin Gate 1. The two questions that decide whether the project should exist are OQ-08 (can the engine find bugs its authors did not imagine?) and OQ-05 (is the most valuable interaction class reachable without building a scheduler?). Both are cheap to answer relative to building anything."
+  "next_action": "Do not begin Gate 1. Build ONLY the benchmark (sealed registry, 22 mechanisms, independently authored per R4) and run the decision. It costs zero remote inference and 2-3 days of compute against a build estimated in months. Answer OQ-16 (does a local model exist?) first -- if not, K4 is unmitigable and the decision is already made.",
+  "research_validity_challenge": {
+    "thesis_under_test": "Failures in tool-using AI agents emerge from interactions between agent decisions, execution history, environment state, tool semantics, context state, authorization state and runtime conditions; a useful system discovers, characterizes, reduces and regression-tests them.",
+    "falsifiable_form": "T*: there exists a class F of failures such that each requires >=2 simultaneously-active conditions from distinct layers; is not found by single-factor sweeps at equal budget; is NOT found by uniform random sampling plus interaction regression at equal budget; is characterizable with decoys excluded; and is non-empty for agents we did not write under dimensions we did not choose.",
+    "settled_by_arithmetic_before_any_experiment": [
+      {
+        "id": "F1",
+        "finding": "Uniform random sampling covers 95.4% of two-way level combinations at the SAME budget as the designed pairwise array (45 configs). Reaching 99% costs 77 random configs vs ~45 designed: efficiency 1.7x. At t=3, random reaches 99% in ~289 configs vs an assumed ~350 designed: NO advantage.",
+        "consequence": "'Covering-array testing for agents' is not a thesis. It is a 1.7x constant-factor optimization over a free baseline. T*(c) is NOT satisfied by the screening design.",
+        "source": "docs/RESEARCH_VALIDITY.md B.1"
+      },
+      {
+        "id": "F2",
+        "finding": "Under uniform random assignment a decoy is independent of the true cause, so random sampling plus logistic interaction regression rejects decoys without any designed experiment.",
+        "consequence": "The design is an optimization; the analysis is standard DOE. Deleting the covering array loses 1.7x efficiency and retains 100% of the epistemic value.",
+        "source": "docs/RESEARCH_VALIDITY.md C.2"
+      },
+      {
+        "id": "F3",
+        "finding": "r_confirm=5 produces at least one over-inclusion with probability 0.99 at p=0.4 and 1.00 at p=0.2 across ~54 ddmin decisions. Required r is 14 at p=0.4 and 32 at p=0.2.",
+        "consequence": "Gate 0.5's r_confirm=5 is wrong as a standalone parameter. It is defensible ONLY because the confirmatory subset sweep follows it (r=5 + sweep = 990 trials vs r=12 + sweep = 1008). Reduction differentiation rests entirely on interaction-aware reduction (M4).",
+        "source": "docs/REDUCTION_VALIDITY.md 2"
+      }
+    ],
+    "surviving_differentiators": [
+      {
+        "id": "S1",
+        "name": "failures outside the level-combination space (history/sequence, interleaving)",
+        "threat": "stateful model-based testing (benchmark arm A5) is the fair null, not random sampling"
+      },
+      {
+        "id": "S2",
+        "name": "factor-model adequacy adjudication (EXPLAINED / PARTIALLY_EXPLAINED / UNEXPLAINED / UNKNOWN_MODEL)",
+        "threat": "nobody attempts it, which may mean nobody wants it (K4 org-chart risk)"
+      },
+      {
+        "id": "S3",
+        "name": "stochastic reduction validity and the stochastic regression artifact",
+        "threat": "an obvious composition of two textbook methods; engineering, not research"
+      }
+    ],
+    "smallest_defensible_differentiation": "Given an observed agent failure and a declared model of what can vary, adjudicate whether that model explains the failure, rejecting decoys and REFUSING TO ATTRIBUTE when the mechanism lies outside the model. The product is a model-adequacy instrument, not a failure finder. Finding is commodity.",
+    "cannot_be_established_by_this_project": [
+      "generalisation to real enterprise systems",
+      "that the factor model is COMPLETE (only inadequacy is detectable)",
+      "any causal claim about production behaviour",
+      "that a clean run means an agent is safe",
+      "real-world frequency of any interaction",
+      "that the benchmark's hidden mechanisms resemble real ones -- we authored those too",
+      "that the adequacy instrument is wanted by anyone"
+    ]
+  },
+  "evidence_layers": {
+    "L-DET": {
+      "planner": "scripted stub",
+      "trajectory": "authored by us",
+      "affordable_n": "1e3-1e5",
+      "claims": "C1-C7: about OUR RUNTIME only"
+    },
+    "L-STO": {
+      "planner": "unscripted local model",
+      "trajectory": "emergent",
+      "affordable_n": "1e2-1e3",
+      "claims": "C8-C12: the only claim class that justifies calling this AGENT reliability"
+    },
+    "L-REM": {
+      "planner": "provider-hosted",
+      "trajectory": "emergent",
+      "affordable_n": "1e1",
+      "claims": "C13-C15: a smoke alarm on a date. Wilson half-width +/-0.33 at n=5"
+    },
+    "non_pooling": "No statistic spans layers. Layer tag is part of the aggregation key; the aggregator refuses a mixed key. The ONLY permitted cross-layer quantity is TRANSFER_YIELD.",
+    "not_establishable_at_any_layer": [
+      "occurs in production",
+      "factor model is complete",
+      "this agent is safe"
+    ]
+  },
+  "decision_criteria": [
+    {
+      "id": "K7",
+      "name": "harness integrity",
+      "pass": "null FP <=0.05, zero INV-9 violations, zero canary hits",
+      "note": "evaluated FIRST; failure halts all other scoring"
+    },
+    {
+      "id": "K1",
+      "name": "hidden-failure discovery",
+      "pass": ">=2 of 3 HIDDEN_RECORDED cases return UNEXPLAINED with the correct ambient observable in >=7/10 replications",
+      "fail": "0 of 3",
+      "note": "primary differentiation metric; no competing arm attempts it"
+    },
+    {
+      "id": "K2",
+      "name": "catastrophic misattribution",
+      "pass": "CMR <=0.10",
+      "kill": "CMR >0.20",
+      "note": "UNCONDITIONAL KILL, no override. A system that names a cause it cannot have observed is worse than one that finds nothing."
+    },
+    {
+      "id": "K3",
+      "name": "differentiation vs the A2 null (random sampling + interaction regression)",
+      "pass": "decoy false-inclusion <=0.5x A2 AND localization exact-match >=A2+0.15",
+      "note": "PREDICTED TO FAIL OR TIE. Recorded so a tie cannot later be narrated as a win."
+    },
+    {
+      "id": "K4",
+      "name": "substrate transfer",
+      "pass": "TRANSFER_YIELD >=0.50",
+      "kill": "<0.30, or no local model exists at all",
+      "note": "answers existential risk #2 directly"
+    },
+    {
+      "id": "K5",
+      "name": "reachability outside the level space (history/concurrency)",
+      "pass": ">=3 of 5 detected AND classified, and >=2 more than A2",
+      "fail": "0 of 5",
+      "note": "A5 (stateful model-based testing) is the fair null here, not A2"
+    },
+    {
+      "id": "K6",
+      "name": "reduction advantage of M4 over M3",
+      "pass": "interaction preservation >=0.70 and M4-M3 >=0.15; false reduction <=0.10",
+      "note": "failure deletes the reduction contribution, does not kill the project"
+    }
+  ],
+  "decision_rule": [
+    {
+      "order": 1,
+      "condition": "K7 FAIL",
+      "decision": "HALT"
+    },
+    {
+      "order": 2,
+      "condition": "K2 FAIL (CMR>0.20)",
+      "decision": "KILL -- unconditional"
+    },
+    {
+      "order": 3,
+      "condition": "K4 FAIL (<0.30) or no local model",
+      "decision": "KILL (or PIVOT to explicitly runtime-only, if an owner exists)"
+    },
+    {
+      "order": 4,
+      "condition": "K1 FAIL and K3 FAIL",
+      "decision": "KILL -- clone hypothesis confirmed, F1/F2 unrefuted"
+    },
+    {
+      "order": 5,
+      "condition": "K1 PASS, K3 FAIL, K5 FAIL",
+      "decision": "PIVOT -- adequacy instrument only"
+    },
+    {
+      "order": 6,
+      "condition": "K1 PASS, K3 FAIL, K5 PASS",
+      "decision": "PIVOT -- adequacy + out-of-level-space discovery"
+    },
+    {
+      "order": 7,
+      "condition": "all of K1,K2,K3,K4,K5,K7 PASS",
+      "decision": "CONTINUE -- full thesis survives"
+    },
+    {
+      "order": 8,
+      "condition": "K6 FAIL",
+      "decision": "as above, additionally delete the reduction contribution"
+    }
+  ],
+  "pre_registered_prediction": {
+    "K7": "PASS",
+    "K1": "PASS",
+    "K2": "PASS (least confident in the table)",
+    "K3": "FAIL or tie",
+    "K4": "UNKNOWN -- genuinely open, no basis for a prediction",
+    "K5": "MARGINAL -- likely ties A5",
+    "K6": "PASS",
+    "decision": "row 5 or 6 -> PIVOT"
+  },
+  "gate_0_75_recommendation": {
+    "recommendation": "PIVOT",
+    "basis": "F1 and F2 (arithmetic, no experiment needed) plus the pre-registered benchmark prediction table, which predicts a tie against the A2 null on 5 of 9 failure classes and a clear win on 2 -- both of which are adequacy, not detection.",
+    "pivot_target": "model-adequacy instrument: adjudicate whether a declared factor model explains an observed failure, reject decoys, and refuse to attribute when the mechanism is unobservable.",
+    "rework_cost": "LOW. Same factor model, same oracles, same Phase-3 design, same substrate. What changes is the headline claim, what the benchmark measures, and the demotion of covering arrays from thesis to default.",
+    "highest_information_experiment": "Benchmark cases B-19 and B-20 (ABSENT_UNRECORDED, with and without a correlated decoy), 10 replications each, scored against arm A2 at equal trial budget.",
+    "explicit_kill_criterion": "CMR > 0.20 on B-19/B-20 -- the system attributes an unobservable mechanism to a declared factor in more than 1 in 5 cases. Unconditional, no override."
+  }
 }
